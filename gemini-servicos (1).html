@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Oficina Pro - Cadastro de Funções de Serviço</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: Inter, sans-serif; }
+    .hidden { display: none; }
+    .glass { background: rgba(255,255,255,0.97); backdrop-filter: blur(10px); }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .fade-in { animation: fadeIn 0.3s ease-in-out; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);} }
+    .tab-btn.active { background:#2563eb; color:#fff; }
+    .tab-btn { transition:all 0.2s; }
+    .peca-item { display:flex; gap:8px; margin-bottom:6px; }
+    .peca-item input { flex:1; padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; font-size:0.875rem; outline:none; }
+    .peca-item input:focus { border-color:#2563eb; box-shadow:0 0 0 2px rgba(37,99,235,0.15); }
+    .btn-remove-peca { background:#fee2e2; color:#dc2626; border:none; border-radius:8px; padding:6px 12px; cursor:pointer; font-weight:600; }
+    .btn-remove-peca:hover { background:#fca5a5; }
+    .btn-add-peca { background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe; border-radius:8px; padding:7px 14px; cursor:pointer; font-size:0.8rem; font-weight:600; }
+    .btn-add-peca:hover { background:#dbeafe; }
+    table { width:100%; border-collapse:collapse; }
+    thead th { background:#f8fafc; padding:10px 12px; text-align:left; font-size:0.8rem; font-weight:700; color:#64748b; border-bottom:2px solid #e2e8f0; }
+    tbody td { padding:10px 12px; border-bottom:1px solid #f1f5f9; font-size:0.875rem; vertical-align:middle; }
+    tbody tr:last-child td { border-bottom:none; }
+    tbody tr:hover { background:#f8fafc; }
+    .selected-service-item { display:flex; justify-content:space-between; align-items:center; padding:8px 12px; border-bottom:1px solid #f1f5f9; }
+    .selected-service-item:last-child { border-bottom:none; }
+    .remove-service-kit { background:#fee2e2; color:#dc2626; border:none; padding:4px 10px; border-radius:6px; cursor:pointer; font-size:0.75rem; font-weight:600; }
+    .action-btn { background:#eff6ff; color:#2563eb; border:none; border-radius:8px; padding:5px 12px; cursor:pointer; font-size:0.8rem; font-weight:600; margin-right:4px; transition:background 0.2s; }
+    .action-btn:hover { background:#dbeafe; }
+    .action-btn.danger { background:#fee2e2; color:#dc2626; }
+    .action-btn.danger:hover { background:#fca5a5; }
+    .action-btn.warning { background:#fef9c3; color:#b45309; }
+    .action-btn.warning:hover { background:#fde68a; }
+    .notificacao { position:fixed; bottom:24px; right:24px; z-index:9999; max-width:340px; padding:14px 20px; border-radius:12px; font-weight:600; font-size:0.9rem; box-shadow:0 4px 24px rgba(0,0,0,0.12); display:none; }
+    .notificacao.success { background:#22c55e; color:#fff; }
+    .notificacao.error { background:#ef4444; color:#fff; }
+    .notificacao.info { background:#2563eb; color:#fff; }
+    .notificacao.warning { background:#f59e0b; color:#fff; }
+    .btn-star { background:transparent; border:1.5px solid #f59e0b; color:#f59e0b; border-radius:8px; padding:4px 10px; cursor:pointer; font-size:0.8rem; transition:all 0.2s; }
+    .btn-star:hover { background:rgba(245,158,11,0.12); }
+    .btn-star.ativo { background:#f59e0b; color:#fff; }
+    .search-container { position:relative; }
+    .sugestoes-box { position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid #e2e8f0; border-radius:10px; z-index:100; display:none; max-height:220px; overflow-y:auto; box-shadow:0 8px 24px rgba(0,0,0,0.08); }
+    .sugestao-item { padding:10px 14px; cursor:pointer; border-bottom:1px solid #f1f5f9; transition:background 0.15s; }
+    .sugestao-item:hover { background:#eff6ff; }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+
+<div id="notificacao" class="notificacao"></div>
+
+<!-- ════════════════ TELA DE LOGIN ════════════════ -->
+<div id="login-screen" class="flex items-center justify-center min-h-screen p-4">
+  <div class="glass p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100 fade-in">
+    <div class="text-center mb-8">
+      <div class="bg-blue-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-200">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+      </div>
+      <h2 class="text-2xl font-bold text-gray-800">Cadastro de Serviços</h2>
+      <p class="text-gray-500 text-sm mt-1">Gerencie funções de serviço da oficina</p>
+    </div>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1">E-mail</label>
+        <input type="email" id="email" placeholder="nome@oficina.com"
+          class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition">
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1">Senha</label>
+        <input type="password" id="password" placeholder="••••••••"
+          class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition">
+      </div>
+      <div class="flex items-center">
+        <input type="checkbox" id="remember-me" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+        <span class="ml-2 text-sm text-gray-600">Manter conectado</span>
+      </div>
+      <button id="btn-login" onclick="window.fazerLogin()"
+        class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-100 transition active:scale-[0.98] flex items-center justify-center gap-2">
+        Entrar no Sistema
+      </button>
+    </div>
+    <p id="login-error" class="text-red-500 text-xs mt-4 text-center font-medium min-h-[16px]"></p>
+  </div>
+</div>
+
+<!-- ════════════════ APP ════════════════ -->
+<div id="app" class="hidden w-full">
+  <header class="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
+      <div>
+        <h1 class="text-lg font-bold text-gray-800">Cadastro de Funções de Serviço</h1>
+        <p class="text-xs text-green-500 flex items-center mt-0.5">
+          <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-1.5"></span>
+          <span id="user-label">Sistema Online</span>
+        </p>
+      </div>
+      <button onclick="window.fazerLogout()"
+        class="px-4 py-2 text-sm font-bold text-gray-600 hover:text-red-600 bg-gray-50 hover:bg-red-50 rounded-lg transition">
+        Sair
+      </button>
+    </div>
+  </header>
+
+  <div class="max-w-6xl mx-auto px-4 py-6">
+    <!-- TABS -->
+    <div class="flex flex-wrap gap-2 mb-6 bg-white p-1.5 rounded-xl shadow-sm border border-gray-100 w-fit">
+      <button class="tab-btn active px-5 py-2 rounded-lg font-semibold text-sm"         onclick="mostrarTab('tab-veiculos')">🚗 Veículos</button>
+      <button class="tab-btn px-5 py-2 rounded-lg font-semibold text-sm text-gray-600"  onclick="mostrarTab('tab-cadastrar')">🔧 Cadastrar Serviço</button>
+      <button class="tab-btn px-5 py-2 rounded-lg font-semibold text-sm text-gray-600"  onclick="mostrarTab('tab-listados')">📋 Serviços Listados</button>
+      <button class="tab-btn px-5 py-2 rounded-lg font-semibold text-sm text-gray-600"  onclick="mostrarTab('tab-kits')">📦 Kits</button>
+    </div>
+
+    <!-- TAB VEÍCULOS -->
+    <div id="tab-veiculos" class="fade-in">
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <h2 class="text-base font-bold text-gray-800 mb-4">🚗 Gerenciar Veículos</h2>
+        <div class="flex gap-3 mb-4">
+          <input type="text" id="novo-veiculo" placeholder="Nome do veículo (ex: Carro Popular)"
+            class="flex-1 p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
+            onkeypress="if(event.key==='Enter') window.adicionarVeiculo()">
+          <button onclick="window.adicionarVeiculo()"
+            class="px-5 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition">Adicionar</button>
+        </div>
+        <div id="lista-veiculos"><p class="text-gray-400 text-sm text-center py-4">Nenhum veículo cadastrado.</p></div>
+      </div>
+    </div>
+
+    <!-- TAB CADASTRAR SERVIÇO -->
+    <div id="tab-cadastrar" class="hidden fade-in">
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <h2 class="text-base font-bold text-gray-800 mb-4">🔧 Cadastrar / Editar Serviço</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Veículo</label>
+            <select id="veiculo-config" onchange="atualizarTabelaConfig(this.value)"
+              class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">Selecione um veículo</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Nome do Serviço</label>
+            <input type="text" id="servico-nome" placeholder="Ex: Troca de Óleo"
+              class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Código TPR</label>
+            <input type="text" id="servico-tpr" placeholder="Ex: 1001A"
+              class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Tempo (horas)</label>
+            <input type="number" id="servico-tempo" placeholder="Ex: 1.5" step="0.1" min="0"
+              class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+        </div>
+        <div class="mt-4">
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Peças / Materiais</label>
+          <div id="pecas-container">
+            <div class="peca-item">
+              <input type="text" class="peca-nome" placeholder="Nome da peça" oninput="atualizarVisibilidadeDescricao()">
+              <button type="button" class="btn-remove-peca" onclick="removerPeca(this)">✕</button>
+            </div>
+          </div>
+          <button type="button" class="btn-add-peca mt-2" onclick="adicionarPeca()">+ Adicionar Peça</button>
+        </div>
+        <div id="visibilidade-desc" class="mt-4 hidden">
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Descrição (opcional)</label>
+          <textarea id="servico-descricao" rows="2" placeholder="Detalhes adicionais..."
+            class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"></textarea>
+        </div>
+        <div class="flex gap-3 mt-5">
+          <button onclick="adicionarServicoConfig()" id="btn-salvar-servico"
+            class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition shadow-sm">Salvar Serviço</button>
+          <button onclick="limparFormConfig()"
+            class="px-6 py-2.5 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 transition shadow-sm">Limpar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB SERVIÇOS LISTADOS -->
+    <div id="tab-listados" class="hidden fade-in">
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <h2 class="text-base font-bold text-gray-800 mb-4">📋 Serviços Cadastrados</h2>
+        <div class="mb-4">
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Filtrar por Veículo</label>
+          <select id="veiculo-config-listados" onchange="atualizarTabelaConfig(this.value)"
+            class="w-full max-w-xs p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">Selecione um veículo</option>
+          </select>
+        </div>
+        <div id="servicos-vazio" class="py-10 text-center">
+          <p class="text-gray-400 text-sm">Selecione um veículo para ver os serviços.</p>
+        </div>
+        <div id="tabela-config-container" class="hidden overflow-x-auto rounded-xl border border-gray-100">
+          <table id="tabela-config">
+            <thead>
+              <tr><th>Serviço</th><th>TPR</th><th>Tempo (h)</th><th>Peças</th><th>Global</th><th>Ações</th></tr>
+            </thead>
+            <tbody id="tabela-config-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB KITS -->
+    <div id="tab-kits" class="hidden fade-in">
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <h2 class="text-base font-bold text-gray-800 mb-1">📦 Kits de Serviço</h2>
+        <p class="text-gray-500 text-sm mb-5">Agrupe vários serviços em um kit para uso rápido nos orçamentos.</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Veículo</label>
+            <select id="kit-veiculo" onchange="carregarListaKits()"
+              class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">Selecione um veículo</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Nome do Kit</label>
+            <input type="text" id="kit-nome" placeholder="Ex: Revisão Completa"
+              class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+        </div>
+        <div class="mb-4">
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Buscar serviço para adicionar ao kit</label>
+          <div class="search-container">
+            <input type="text" id="busca-servico-kit" placeholder="Digite o nome do serviço..."
+              class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
+              autocomplete="off" oninput="buscaServicoKit(this.value)">
+            <div class="sugestoes-box" id="sugestoes-servicos-kit"></div>
+          </div>
+          <button type="button" class="btn-add-peca mt-2" onclick="adicionarServicoAoKit()">+ Adicionar à lista</button>
+        </div>
+        <div class="mb-5">
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Serviços selecionados para o kit</label>
+          <div id="selected-services-list" class="border border-gray-100 rounded-xl bg-gray-50 min-h-[60px]">
+            <div class="py-4 text-center text-gray-400 text-sm">Nenhum serviço selecionado</div>
+          </div>
+        </div>
+        <div class="flex gap-3">
+          <button onclick="salvarKit()"
+            class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition shadow-sm">Salvar Kit</button>
+          <button onclick="limparFormKit()"
+            class="px-6 py-2.5 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 transition shadow-sm">Limpar</button>
+        </div>
+        <div class="mt-6 pt-5 border-t border-gray-100">
+          <h3 class="font-bold text-gray-700 text-sm mb-3">Kits Cadastrados</h3>
+          <div id="lista-kits"><p class="text-gray-400 text-sm text-center py-4">Selecione um veículo para ver os kits.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ JAVASCRIPT ════════════════ -->
+<script type="module">
+
+// ── 1. IMPORTAÇÕES FIREBASE ────────────────────────────────────────────────
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  onAuthStateChanged,
+  signOut,
+  setPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence
+} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+import {
+  getFirestore,
+  doc,
+  setDoc,
+  getDoc
+} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+// ── 2. CONFIGURAÇÃO E INICIALIZAÇÃO ───────────────────────────────────────
+const firebaseConfig = {
+  apiKey:            "AIzaSyD1miWD1YQms4N8-calFT9Oh2pewmhBxw",
+  authDomain:        "oficinaorcamento-75d19.firebaseapp.com",
+  projectId:         "oficinaorcamento-75d19",
+  storageBucket:     "oficinaorcamento-75d19.firebasestorage.app",
+  messagingSenderId: "822648312531",
+  appId:             "1:822648312531:web:ec82db370f17a28d13fa26"
+};
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+// ── 3. ESTADO LOCAL ────────────────────────────────────────────────────────
+let database = {
+  veiculos: ['Carro Popular', 'SUV', 'Caminhão Leve'],
+  servicos: {
+    'Carro Popular': {
+      'Troca de Filtros':   { peca:'Troca de Filtros',   tpr:'8000A', tempo:0.5, pecas:['Filtro de Ar','Filtro de Óleo','Filtro de Combustível'] },
+      'Troca de Pastilhas': { peca:'Troca de Pastilhas', tpr:'2050C', tempo:0.8, pecas:['Pastilha Dianteira','Pastilha Traseira'] }
+    },
+    'SUV': {
+      'Alinhamento e Balanceamento': { peca:'Alinhamento e Balanceamento', tpr:'1500E', tempo:0.7, pecas:['Alinhamento','Balanceamento'] }
+    },
+    'Caminhão Leve': {}
+  },
+  kits: {}
+};
+
+let servicoEditando        = null;
+let kitEditando            = null;
+let servicosSelecionadosKit = [];
+let usuarioAtual           = null;
+
+// ── 4. UTILITÁRIOS ─────────────────────────────────────────────────────────
+function mostrarNotificacao(msg, tipo = 'success') {
+  const el = document.getElementById('notificacao');
+  el.textContent = msg;
+  el.className   = 'notificacao ' + tipo;
+  el.style.display = 'block';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.style.display = 'none', 3500);
+}
+
+function recarregarSelects(id) {
+  const sel = document.getElementById(id);
+  if (!sel) return;
+  const val = sel.value;
+  sel.innerHTML = '<option value="">Selecione um veículo</option>';
+  database.veiculos.forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v; opt.textContent = v;
+    sel.appendChild(opt);
+  });
+  if (val) sel.value = val;
+}
+
+// ── 5. AUTENTICAÇÃO ────────────────────────────────────────────────────────
+
+// Permitir Enter no login
+document.addEventListener('keypress', e => {
+  if (e.key === 'Enter' && !document.getElementById('login-screen').classList.contains('hidden'))
+    window.fazerLogin();
+});
+
+window.fazerLogin = async function () {
+  const email      = document.getElementById('email').value.trim();
+  const pass       = document.getElementById('password').value;
+  const rememberMe = document.getElementById('remember-me').checked;
+  const btn        = document.getElementById('btn-login');
+  const err        = document.getElementById('login-error');
+
+  if (!email || !pass) { err.textContent = 'Preencha todos os campos.'; return; }
+
+  err.textContent  = '';
+  btn.disabled     = true;
+  btn.innerHTML    = '<svg class="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Entrando...';
+
+  try {
+    const persistence = rememberMe ? browserLocalPersistence : browserSessionPersistence;
+    await setPersistence(auth, persistence);
+    await signInWithEmailAndPassword(auth, email, pass);
+    // onAuthStateChanged cuida do restante
+  } catch (error) {
+    btn.disabled    = false;
+    btn.textContent = 'Entrar no Sistema';
+    if      (error.code === 'auth/invalid-credential')  err.textContent = 'E-mail ou senha incorretos.';
+    else if (error.code === 'auth/too-many-requests')   err.textContent = 'Muitas tentativas. Tente mais tarde.';
+    else if (error.code === 'auth/invalid-email')       err.textContent = 'E-mail inválido.';
+    else if (error.code === 'auth/user-disabled')       err.textContent = 'Conta desativada.';
+    else                                                err.textContent = 'Erro ao acessar. Verifique sua conexão.';
+  }
+};
+
+window.fazerLogout = function () {
+  if (confirm('Deseja realmente sair do sistema?'))
+    signOut(auth).then(() => window.location.reload());
+};
+
+// ── 6. MONITORAR ESTADO DE AUTENTICAÇÃO ────────────────────────────────────
+onAuthStateChanged(auth, async user => {
+  const loginScreen = document.getElementById('login-screen');
+  const appDiv      = document.getElementById('app');
+  const btnLogin    = document.getElementById('btn-login');
+
+  if (user) {
+    usuarioAtual = user;
+    loginScreen.classList.add('hidden');
+    appDiv.classList.remove('hidden');
+    document.getElementById('user-label').textContent = user.email;
+    btnLogin.disabled    = false;
+    btnLogin.textContent = 'Entrar no Sistema';
+    await carregarCatalogoGlobal();
+    inicializarInterface();
+  } else {
+    usuarioAtual = null;
+    loginScreen.classList.remove('hidden');
+    appDiv.classList.add('hidden');
+  }
+});
+
+// ── 7. FIREBASE: CATÁLOGO GLOBAL ───────────────────────────────────────────
+async function carregarCatalogoGlobal() {
+  try {
+    const snap = await getDoc(doc(db, 'dadosglobais', 'catalogo'));
+    if (snap.exists()) {
+      const c = snap.data();
+      if (c.veiculos?.length)                      database.veiculos = c.veiculos;
+      if (c.servicos && Object.keys(c.servicos).length) database.servicos = c.servicos;
+      if (c.kits)                                  database.kits    = c.kits;
+    } else {
+      await salvarCatalogoGlobal();
+    }
+  } catch (e) {
+    console.warn('Erro ao carregar catálogo:', e.message);
+    mostrarNotificacao('Aviso: não foi possível carregar dados do servidor.', 'warning');
+  }
+}
+
+async function salvarCatalogoGlobal() {
+  if (!usuarioAtual) return;
+  const payload = {
+    veiculos:          database.veiculos,
+    servicos:          database.servicos,
+    kits:              database.kits,
+    ultimaAtualizacao: new Date().toISOString(),
+    atualizadoPor:     usuarioAtual.email
+  };
+  for (let t = 1; t <= 3; t++) {
+    try {
+      await setDoc(doc(db, 'dadosglobais', 'catalogo'), payload);
+      return;
+    } catch (e) {
+      console.error(`Erro ao salvar (tentativa ${t}/3):`, e.message);
+      if (t < 3) await new Promise(r => setTimeout(r, 1000));
+      else mostrarNotificacao('Falha ao sincronizar. Verifique sua conexão.', 'error');
+    }
+  }
+}
+
+// ── 8. INTERFACE INICIAL ───────────────────────────────────────────────────
+function inicializarInterface() {
+  if (!database.kits) database.kits = {};
+  recarregarSelects('veiculo-config');
+  recarregarSelects('veiculo-config-listados');
+  recarregarSelects('kit-veiculo');
+  carregarListaVeiculos();
+  atualizarListaServicosSelecionados();
+}
+
+window.mostrarTab = function (tabId) {
+  ['tab-veiculos','tab-cadastrar','tab-listados','tab-kits'].forEach(id => {
+    document.getElementById(id).classList.toggle('hidden', id !== tabId);
+  });
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    const ids = ['tab-veiculos','tab-cadastrar','tab-listados','tab-kits'];
+    b.classList.toggle('active', ids[i] === tabId);
+    b.classList.toggle('text-gray-600', ids[i] !== tabId);
+  });
+  if (tabId === 'tab-listados') recarregarSelects('veiculo-config-listados');
+  if (tabId === 'tab-cadastrar') recarregarSelects('veiculo-config');
+  if (tabId === 'tab-kits')    { recarregarSelects('kit-veiculo'); carregarListaKits(); }
+};
+
+// ── 9. VEÍCULOS ────────────────────────────────────────────────────────────
+window.adicionarVeiculo = async function () {
+  const input = document.getElementById('novo-veiculo');
+  const nome  = input.value.trim();
+  if (!nome) { mostrarNotificacao('Digite o nome do veículo.', 'error'); return; }
+  if (database.veiculos.includes(nome)) { mostrarNotificacao('Veículo já cadastrado.', 'error'); return; }
+  database.veiculos.push(nome);
+  if (!database.servicos[nome]) database.servicos[nome] = {};
+  input.value = '';
+  await salvarCatalogoGlobal();
+  carregarListaVeiculos();
+  ['veiculo-config','veiculo-config-listados','kit-veiculo'].forEach(recarregarSelects);
+  mostrarNotificacao(`Veículo "${nome}" adicionado!`, 'success');
+};
+
+function carregarListaVeiculos() {
+  const lista = document.getElementById('lista-veiculos');
+  if (!database.veiculos.length) {
+    lista.innerHTML = '<p class="text-gray-400 text-sm text-center py-4">Nenhum veículo cadastrado.</p>';
+    return;
+  }
+  lista.innerHTML = database.veiculos.map(v => `
+    <div class="flex justify-between items-center py-2.5 px-3 border-b border-gray-50 last:border-0 hover:bg-gray-50 rounded-lg">
+      <span class="font-medium text-gray-700">${v}</span>
+      <div class="flex gap-2">
+        <button class="action-btn warning" onclick="editarVeiculo('${v.replace(/'/g,"\'")}')">✏️ Editar</button>
+        <button class="action-btn danger"  onclick="excluirVeiculo('${v.replace(/'/g,"\'")}')">🗑️ Excluir</button>
+      </div>
+    </div>`).join('');
+}
+
+window.editarVeiculo = async function (veiculoAntigo) {
+  const novoNome = prompt(`Renomear veículo "${veiculoAntigo}" para:`, veiculoAntigo);
+  if (!novoNome || novoNome.trim() === veiculoAntigo) return;
+  const nn = novoNome.trim();
+  if (database.veiculos.includes(nn)) { mostrarNotificacao('Já existe um veículo com este nome.', 'error'); return; }
+  database.veiculos = database.veiculos.map(v => v === veiculoAntigo ? nn : v);
+  database.servicos[nn] = JSON.parse(JSON.stringify(database.servicos[veiculoAntigo] || {}));
+  delete database.servicos[veiculoAntigo];
+  if (database.kits?.[veiculoAntigo]) {
+    database.kits[nn] = JSON.parse(JSON.stringify(database.kits[veiculoAntigo]));
+    delete database.kits[veiculoAntigo];
+  }
+  await salvarCatalogoGlobal();
+  carregarListaVeiculos();
+  ['veiculo-config','veiculo-config-listados','kit-veiculo'].forEach(recarregarSelects);
+  mostrarNotificacao(`Veículo renomeado para "${nn}".`, 'success');
+};
+
+window.excluirVeiculo = async function (veiculo) {
+  if (!confirm(`Excluir veículo "${veiculo}" e todos os seus serviços e kits?`)) return;
+  database.veiculos = database.veiculos.filter(v => v !== veiculo);
+  delete database.servicos[veiculo];
+  if (database.kits) delete database.kits[veiculo];
+  await salvarCatalogoGlobal();
+  carregarListaVeiculos();
+  ['veiculo-config','veiculo-config-listados','kit-veiculo'].forEach(recarregarSelects);
+  mostrarNotificacao('Veículo excluído.', 'success');
+};
+
+// ── 10. FORMULÁRIO DE SERVIÇO ──────────────────────────────────────────────
+window.adicionarPeca = function () {
+  const container = document.getElementById('pecas-container');
+  const div = document.createElement('div');
+  div.className = 'peca-item';
+  div.innerHTML = `<input type="text" class="peca-nome" placeholder="Nome da peça" oninput="atualizarVisibilidadeDescricao()">
+    <button type="button" class="btn-remove-peca" onclick="removerPeca(this)">✕</button>`;
+  container.appendChild(div);
+};
+
+window.removerPeca = function (btn) {
+  const container = document.getElementById('pecas-container');
+  if (container.querySelectorAll('.peca-item').length > 1)
+    btn.closest('.peca-item').remove();
+  else
+    btn.closest('.peca-item').querySelector('.peca-nome').value = '';
+  atualizarVisibilidadeDescricao();
+};
+
+window.atualizarVisibilidadeDescricao = function () {
+  const temPeca = [...document.querySelectorAll('.peca-nome')].some(i => i.value.trim());
+  document.getElementById('visibilidade-desc').classList.toggle('hidden', !temPeca);
+};
+
+window.adicionarServicoConfig = async function () {
+  const veiculo = document.getElementById('veiculo-config').value;
+  const nome    = document.getElementById('servico-nome').value.trim();
+  const tpr     = document.getElementById('servico-tpr').value.trim();
+  const tempo   = parseFloat(document.getElementById('servico-tempo').value) || 0;
+  const pecas   = [...document.querySelectorAll('.peca-nome')].map(i => i.value.trim()).filter(Boolean);
+
+  if (!veiculo) { mostrarNotificacao('Selecione um veículo.', 'error'); return; }
+  if (!nome)    { mostrarNotificacao('Digite o nome do serviço.', 'error'); return; }
+
+  if (!database.servicos[veiculo]) database.servicos[veiculo] = {};
+
+  if (servicoEditando && servicoEditando !== nome)
+    delete database.servicos[veiculo][servicoEditando];
+
+  database.servicos[veiculo][nome] = { peca: nome, tpr, tempo, pecas };
+  await salvarCatalogoGlobal();
+  limparFormConfig();
+  atualizarTabelaConfig(veiculo);
+  document.getElementById('veiculo-config').value = veiculo;
+  mostrarNotificacao(`Serviço "${nome}" salvo com sucesso!`, 'success');
+};
+
+window.limparFormConfig = function () {
+  document.getElementById('servico-nome').value      = '';
+  document.getElementById('servico-tpr').value       = '';
+  document.getElementById('servico-tempo').value     = '';
+  document.getElementById('servico-descricao').value = '';
+  document.getElementById('pecas-container').innerHTML =
+    `<div class="peca-item">
+       <input type="text" class="peca-nome" placeholder="Nome da peça" oninput="atualizarVisibilidadeDescricao()">
+       <button type="button" class="btn-remove-peca" onclick="removerPeca(this)">✕</button>
+     </div>`;
+  document.getElementById('visibilidade-desc').classList.add('hidden');
+  document.getElementById('btn-salvar-servico').textContent = 'Salvar Serviço';
+  servicoEditando = null;
+};
+
+// ── 11. TABELA DE SERVIÇOS ─────────────────────────────────────────────────
+window.atualizarTabelaConfig = function (veiculo) {
+  const tbody  = document.getElementById('tabela-config-body');
+  const vazio  = document.getElementById('servicos-vazio');
+  const tabela = document.getElementById('tabela-config-container');
+  if (!veiculo) { vazio.classList.remove('hidden'); tabela.classList.add('hidden'); return; }
+
+  const servicos = database.servicos[veiculo] || {};
+  const nomes    = Object.keys(servicos);
+
+  if (!nomes.length) {
+    vazio.innerHTML = '<p class="text-gray-400 text-sm text-center py-4">Nenhum serviço cadastrado para este veículo.</p>';
+    vazio.classList.remove('hidden'); tabela.classList.add('hidden'); return;
+  }
+  vazio.classList.add('hidden'); tabela.classList.remove('hidden');
+  tbody.innerHTML = nomes.map(nome => {
+    const s = servicos[nome];
+    const nomeEsc = nome.replace(/'/g, "\'");
+    const veicEsc = veiculo.replace(/'/g, "\'");
+    return `<tr>
+      <td class="font-semibold text-gray-800">${nome}</td>
+      <td class="text-gray-500 font-mono text-xs">${s.tpr || '—'}</td>
+      <td>${s.tempo || 0} h</td>
+      <td class="text-xs text-gray-500 max-w-[180px] truncate" title="${(s.pecas||[]).join(', ')}">${(s.pecas||[]).join(', ') || '—'}</td>
+      <td><button class="btn-star ${s.global?'ativo':''}" onclick="toggleServicoGlobal('${veicEsc}','${nomeEsc}')">${s.global?'🌐 Global':'☆ Local'}</button></td>
+      <td>
+        <button class="action-btn warning" onclick="editarServicoConfig('${veicEsc}','${nomeEsc}')">✏️</button>
+        <button class="action-btn danger"  onclick="excluirServico('${veicEsc}','${nomeEsc}')">🗑️</button>
+      </td></tr>`;
+  }).join('');
+};
+
+window.editarServicoConfig = function (veiculo, nome) {
+  const servico = database.servicos[veiculo]?.[nome];
+  if (!servico) return;
+  mostrarTab('tab-cadastrar');
+  document.getElementById('veiculo-config').value  = veiculo;
+  document.getElementById('servico-nome').value    = nome;
+  document.getElementById('servico-tpr').value     = servico.tpr  || '';
+  document.getElementById('servico-tempo').value   = servico.tempo || '';
+  const pecas = servico.pecas?.length ? servico.pecas : [''];
+  document.getElementById('pecas-container').innerHTML = pecas.map(p => `
+    <div class="peca-item">
+      <input type="text" class="peca-nome" value="${p}" placeholder="Nome da peça" oninput="atualizarVisibilidadeDescricao()">
+      <button type="button" class="btn-remove-peca" onclick="removerPeca(this)">✕</button>
+    </div>`).join('');
+  atualizarVisibilidadeDescricao();
+  servicoEditando = nome;
+  document.getElementById('btn-salvar-servico').textContent = '💾 Atualizar Serviço';
+  mostrarNotificacao(`Editando: "${nome}". Altere e clique em Atualizar.`, 'info');
+};
+
+window.excluirServico = async function (veiculo, nome) {
+  if (!confirm(`Excluir o serviço "${nome}"?`)) return;
+  delete database.servicos[veiculo][nome];
+  await salvarCatalogoGlobal();
+  atualizarTabelaConfig(veiculo);
+  mostrarNotificacao('Serviço excluído.', 'success');
+};
+
+window.toggleServicoGlobal = async function (veiculo, nome) {
+  const servico = database.servicos[veiculo]?.[nome];
+  if (!servico) return;
+  servico.global = !servico.global;
+  if (servico.global) {
+    for (const v in database.servicos) {
+      if (v !== veiculo) database.servicos[v][nome] = { ...servico };
+    }
+    mostrarNotificacao(`"${nome}" marcado como global — adicionado a todos os veículos.`, 'success');
+  } else {
+    for (const v in database.servicos) {
+      if (v !== veiculo && database.servicos[v][nome]?.global) delete database.servicos[v][nome];
+    }
+    mostrarNotificacao(`"${nome}" voltou para o modo local.`, 'info');
+  }
+  database.servicos[veiculo][nome] = servico;
+  await salvarCatalogoGlobal();
+  atualizarTabelaConfig(veiculo);
+};
+
+// ── 12. KITS ───────────────────────────────────────────────────────────────
+window.buscaServicoKit = function (termo) {
+  const veiculo = document.getElementById('kit-veiculo').value;
+  const box     = document.getElementById('sugestoes-servicos-kit');
+  if (!veiculo || termo.length < 1) { box.style.display = 'none'; return; }
+  const servicos  = database.servicos[veiculo] || {};
+  const t         = termo.toLowerCase();
+  const resultado = Object.keys(servicos).filter(n => n.toLowerCase().includes(t));
+  if (!resultado.length) { box.style.display = 'none'; return; }
+  box.innerHTML = resultado.map(n =>
+    `<div class="sugestao-item" onclick="selecionarServicoKit('${n.replace(/'/g,"\'")}')">
+       <div class="font-semibold text-gray-800">${n}</div>
+       <div class="text-xs text-gray-400">TPR ${servicos[n].tpr||'—'} · ${servicos[n].tempo||0} h</div>
+     </div>`).join('');
+  box.style.display = 'block';
+};
+
+window.selecionarServicoKit = function (nome) {
+  document.getElementById('busca-servico-kit').value = nome;
+  document.getElementById('sugestoes-servicos-kit').style.display = 'none';
+};
+
+document.addEventListener('click', e => {
+  const box = document.getElementById('sugestoes-servicos-kit');
+  if (box && !e.target.closest('#busca-servico-kit') && !e.target.closest('#sugestoes-servicos-kit'))
+    box.style.display = 'none';
+});
+
+window.adicionarServicoAoKit = function () {
+  const veiculo = document.getElementById('kit-veiculo').value;
+  const nome    = document.getElementById('busca-servico-kit').value.trim();
+  if (!veiculo) { mostrarNotificacao('Selecione um veículo primeiro.', 'error'); return; }
+  if (!nome)    { mostrarNotificacao('Digite ou selecione um serviço.', 'error'); return; }
+  const servico = database.servicos[veiculo]?.[nome];
+  if (!servico) { mostrarNotificacao('Serviço não encontrado para este veículo.', 'error'); return; }
+  if (servicosSelecionadosKit.some(s => s.nome === nome)) {
+    mostrarNotificacao('Este serviço já foi adicionado ao kit.', 'error'); return;
+  }
+  servicosSelecionadosKit.push({ nome, ...servico });
+  document.getElementById('busca-servico-kit').value = '';
+  atualizarListaServicosSelecionados();
+};
+
+function atualizarListaServicosSelecionados() {
+  const c = document.getElementById('selected-services-list');
+  if (!servicosSelecionadosKit.length) {
+    c.innerHTML = '<div class="py-4 text-center text-gray-400 text-sm">Nenhum serviço selecionado</div>';
+    return;
+  }
+  c.innerHTML = servicosSelecionadosKit.map((s, i) => `
+    <div class="selected-service-item">
+      <div>
+        <div class="font-semibold text-gray-800 text-sm">${s.nome}</div>
+        <div class="text-xs text-gray-400">TPR ${s.tpr||'—'} · ${s.tempo||0} h</div>
+      </div>
+      <button class="remove-service-kit" onclick="removerServicoDaLista(${i})">Remover</button>
+    </div>`).join('');
+}
+
+window.removerServicoDaLista = function (idx) {
+  servicosSelecionadosKit.splice(idx, 1);
+  atualizarListaServicosSelecionados();
+};
+
+window.salvarKit = async function () {
+  const veiculo = document.getElementById('kit-veiculo').value;
+  const nomeKit = document.getElementById('kit-nome').value.trim();
+  if (!veiculo)                           { mostrarNotificacao('Selecione um veículo.', 'error'); return; }
+  if (!nomeKit)                           { mostrarNotificacao('Digite um nome para o kit.', 'error'); return; }
+  if (!servicosSelecionadosKit.length)    { mostrarNotificacao('Adicione pelo menos um serviço ao kit.', 'error'); return; }
+  if (!database.kits)                     database.kits = {};
+  if (!database.kits[veiculo])            database.kits[veiculo] = {};
+  if (kitEditando && kitEditando.nomeAntigo !== nomeKit)
+    delete database.kits[veiculo][kitEditando.nomeAntigo];
+  database.kits[veiculo][nomeKit] = [...servicosSelecionadosKit];
+  await salvarCatalogoGlobal();
+  limparFormKit();
+  carregarListaKits();
+  mostrarNotificacao(`Kit "${nomeKit}" salvo com sucesso!`, 'success');
+};
+
+window.carregarListaKits = function () {
+  const listaDiv = document.getElementById('lista-kits');
+  const veiculo  = document.getElementById('kit-veiculo').value;
+  if (!veiculo) { listaDiv.innerHTML = '<p class="text-gray-400 text-sm text-center py-4">Selecione um veículo para ver os kits.</p>'; return; }
+  const kitsVeiculo = database.kits?.[veiculo] || {};
+  const nomes = Object.keys(kitsVeiculo);
+  if (!nomes.length) { listaDiv.innerHTML = '<p class="text-gray-400 text-sm text-center py-4">Nenhum kit cadastrado para este veículo.</p>'; return; }
+  listaDiv.innerHTML = nomes.map(nomeKit => {
+    const servicos = kitsVeiculo[nomeKit];
+    const nk = nomeKit.replace(/'/g,"\'");
+    const vv = veiculo.replace(/'/g,"\'");
+    return `<div class="border border-gray-100 rounded-xl p-4 mb-3">
+      <div class="flex justify-between items-center mb-2">
+        <span class="font-bold text-gray-800">📦 ${nomeKit}</span>
+        <div>
+          <button class="action-btn warning" onclick="editarKit('${vv}','${nk}')">✏️ Editar</button>
+          <button class="action-btn danger"  onclick="excluirKit('${vv}','${nk}')">🗑️ Excluir</button>
+        </div>
+      </div>
+      <div class="text-xs text-gray-400">${servicos.map(s=>s.nome).join(' · ')}</div>
+    </div>`;
+  }).join('');
+};
+
+window.editarKit = function (veiculo, nomeKit) {
+  const kit = database.kits?.[veiculo]?.[nomeKit];
+  if (!kit) return;
+  document.getElementById('kit-veiculo').value = veiculo;
+  document.getElementById('kit-nome').value    = nomeKit;
+  servicosSelecionadosKit = [...kit];
+  atualizarListaServicosSelecionados();
+  kitEditando = { veiculo, nomeAntigo: nomeKit };
+  mostrarNotificacao(`Editando kit "${nomeKit}". Adicione/remova serviços e clique em Salvar.`, 'info');
+};
+
+window.excluirKit = async function (veiculo, nomeKit) {
+  if (!confirm(`Excluir o kit "${nomeKit}"?`)) return;
+  delete database.kits[veiculo][nomeKit];
+  await salvarCatalogoGlobal();
+  carregarListaKits();
+  mostrarNotificacao('Kit excluído.', 'success');
+};
+
+window.limparFormKit = function () {
+  document.getElementById('kit-nome').value          = '';
+  document.getElementById('busca-servico-kit').value = '';
+  servicosSelecionadosKit = [];
+  kitEditando             = null;
+  atualizarListaServicosSelecionados();
+};
+
+</script>
+</body>
+</html>
