@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel Administrativo - Oficina</title>
+<style>
+  :root { --primary: #2563eb; --bg: #f8fafc; --sidebar: #1e293b; --success: #10b981; --danger: #ef4444; --warning: #f59e0b; --border: #e2e8f0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: var(--bg); display: flex; min-height: 100vh; }
+  .sidebar { width: 260px; min-height: 100vh; background: var(--sidebar); color: white; padding: 24px 16px; position: fixed; display: flex; flex-direction: column; gap: 8px; }
+  .sidebar h2 { font-size: 1.1rem; margin-bottom: 4px; }
+  .sidebar p { font-size: 0.8rem; opacity: 0.6; margin-bottom: 16px; }
+  .sidebar hr { opacity: 0.15; margin-bottom: 16px; }
+  .nav-btn { background: transparent; border: none; color: white; padding: 10px 14px; border-radius: 8px; cursor: pointer; width: 100%; text-align: left; font-size: 0.9rem; transition: background 0.2s; }
+  .nav-btn:hover, .nav-btn.active { background: rgba(255,255,255,0.12); }
+  .main-content { margin-left: 260px; padding: 32px; width: calc(100% - 260px); }
+  h1 { font-size: 1.4rem; margin-bottom: 24px; color: #1e293b; }
+  .card { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 24px; border: 1px solid var(--border); }
+  .card h3 { font-size: 1rem; margin-bottom: 16px; color: #1e293b; border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
+  .grid-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 14px; }
+  .form-group { display: flex; flex-direction: column; gap: 4px; }
+  .form-group label { font-size: 0.8rem; font-weight: 600; color: #475569; }
+  input[type=text], input[type=number], select, textarea {
+    padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;
+    font-size: 0.9rem; background: white; color: #1e293b; width: 100%;
+    transition: border-color 0.2s;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.15); }
+  .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 0.875rem; font-weight: 600; transition: all 0.2s; }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-success { background: var(--success); color: white; }
+  .btn-danger { background: var(--danger); color: white; }
+  .btn-warning { background: var(--warning); color: white; }
+  .btn:hover { opacity: 0.88; transform: translateY(-1px); }
+  .btn-group { display: flex; gap: 10px; margin-top: 4px; flex-wrap: wrap; }
+  table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 0.875rem; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  th { background: #f1f5f9; font-weight: 600; color: #475569; font-size: 0.8rem; }
+  tr:hover td { background: #f8fafc; }
+  .pecas-container { border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 8px; background: #f8fafc; }
+  .peca-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+  .peca-row input { flex: 1; }
+  .btn-remove { background: var(--danger); color: white; border: none; border-radius: 6px; padding: 6px 10px; cursor: pointer; font-size: 0.75rem; }
+  .btn-add-peca { background: var(--success); color: white; border: none; border-radius: 6px; padding: 7px 12px; cursor: pointer; font-size: 0.8rem; font-weight: 600; margin-top: 4px; }
+  .section { display: none; }
+  .section.active { display: block; }
+  .tag { display: inline-block; background: #e0e7ff; color: #3730a3; border-radius: 6px; padding: 2px 8px; font-size: 0.75rem; margin: 2px; }
+  .notification { position: fixed; top: 20px; right: 20px; padding: 12px 20px; border-radius: 10px; color: white; font-weight: 600; z-index: 9999; font-size: 0.875rem; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+  .notification.success { background: var(--success); }
+  .notification.error { background: var(--danger); }
+  .notification.info { background: var(--primary); }
+  .kit-servico-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; background: white; }
+  .empty { text-align: center; padding: 24px; color: #94a3b8; font-size: 0.875rem; }
+  .status-badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
+  .status-sync { background: #d1fae5; color: #065f46; }
+  .status-error { background: #fee2e2; color: #991b1b; }
+  .sugestoes-box { border: 1px solid var(--border); border-radius: 8px; background: white; max-height: 180px; overflow-y: auto; display: none; position: absolute; width: 100%; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+  .sugestao-item { padding: 10px 14px; cursor: pointer; font-size: 0.875rem; border-bottom: 1px solid #f1f5f9; }
+  .sugestao-item:hover { background: var(--primary); color: white; }
+  .relative { position: relative; }
+  @media (max-width: 768px) {
+    .sidebar { width: 100%; min-height: auto; position: relative; flex-direction: row; flex-wrap: wrap; padding: 12px; }
+    .main-content { margin-left: 0; width: 100%; padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <h2>⚙️ Gerenciador Oficina</h2>
+  <p>Sincronizado via Firebase</p>
+  <hr>
+  <button class="nav-btn active" onclick="mostrarSecao('sec-veiculos', this)">🚗 Veículos</button>
+  <button class="nav-btn" onclick="mostrarSecao('sec-servicos', this)">🔧 Serviços</button>
+  <button class="nav-btn" onclick="mostrarSecao('sec-kits', this)">📦 Kits</button>
+  <button class="nav-btn" onclick="mostrarSecao('sec-sync', this)">🔄 Sincronização</button>
+</div>
+
+<div class="main-content">
+  <h1>Configuração de Dados</h1>
+  <div id="notification" class="notification"></div>
+
+  <!-- ===== VEÍCULOS ===== -->
+  <div id="sec-veiculos" class="section active">
+    <div class="card">
+      <h3>🚗 Cadastrar / Editar Veículo</h3>
+      <div class="grid-inputs">
+        <div class="form-group">
+          <label>Nome do Veículo</label>
+          <input type="text" id="v-nome" placeholder="Ex: Carro Popular">
+        </div>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-success" onclick="salvarVeiculo()">Adicionar Veículo</button>
+        <button class="btn btn-warning" onclick="limparVeiculo()">Limpar</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>📋 Veículos Cadastrados</h3>
+      <div id="lista-veiculos"><div class="empty">Carregando...</div></div>
+    </div>
+  </div>
+
+  <!-- ===== SERVIÇOS ===== -->
+  <div id="sec-servicos" class="section">
+    <div class="card">
+      <h3>🔧 Cadastrar / Editar Serviço</h3>
+      <div class="grid-inputs">
+        <div class="form-group">
+          <label>Veículo</label>
+          <select id="s-veiculo" onchange="carregarServicosVeiculo()">
+            <option value="">Selecione o veículo</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Nome do Serviço</label>
+          <input type="text" id="s-nome" placeholder="Ex: Troca de Filtros">
+        </div>
+        <div class="form-group">
+          <label>TPR (código)</label>
+          <input type="text" id="s-tpr" placeholder="Ex: 8000A">
+        </div>
+        <div class="form-group">
+          <label>Tempo (horas)</label>
+          <input type="number" id="s-tempo" placeholder="Ex: 0.5" step="0.1" min="0">
+        </div>
+        <div class="form-group">
+          <label>Global (todos os veículos)?</label>
+          <select id="s-global">
+            <option value="false">Não</option>
+            <option value="true">Sim</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:12px">
+        <label>Peças necessárias</label>
+        <div class="pecas-container" id="s-pecas-container">
+          <div class="peca-row">
+            <input type="text" class="peca-input" placeholder="Nome da peça">
+            <button class="btn-remove" onclick="removerPeca(this)">✕</button>
+          </div>
+        </div>
+        <button class="btn-add-peca" onclick="adicionarPeca()">+ Adicionar Peça</button>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-success" onclick="salvarServico()">Salvar Serviço</button>
+        <button class="btn btn-warning" onclick="limparServico()">Limpar</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>📋 Serviços do Veículo Selecionado</h3>
+      <div id="lista-servicos"><div class="empty">Selecione um veículo para ver os serviços.</div></div>
+    </div>
+  </div>
+
+  <!-- ===== KITS ===== -->
+  <div id="sec-kits" class="section">
+    <div class="card">
+      <h3>📦 Cadastrar Kit</h3>
+      <div class="grid-inputs">
+        <div class="form-group">
+          <label>Veículo</label>
+          <select id="k-veiculo" onchange="carregarKitsVeiculo(); carregarServicosParaKit()">
+            <option value="">Selecione o veículo</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Nome do Kit</label>
+          <input type="text" id="k-nome" placeholder="Ex: Revisão Completa">
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:12px">
+        <label>Buscar e adicionar serviço ao kit</label>
+        <div class="relative">
+          <input type="text" id="k-busca-servico" placeholder="Digite o nome do serviço..." autocomplete="off" oninput="buscarServicosKit()">
+          <div class="sugestoes-box" id="k-sugestoes"></div>
+        </div>
+      </div>
+      <div id="k-servicos-selecionados" style="margin-bottom:12px">
+        <div class="empty">Nenhum serviço selecionado.</div>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-success" onclick="salvarKit()">Salvar Kit</button>
+        <button class="btn btn-warning" onclick="limparKit()">Limpar</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>📋 Kits do Veículo Selecionado</h3>
+      <div id="lista-kits"><div class="empty">Selecione um veículo para ver os kits.</div></div>
+    </div>
+  </div>
+
+  <!-- ===== SINCRONIZAÇÃO ===== -->
+  <div id="sec-sync" class="section">
+    <div class="card">
+      <h3>🔄 Status de Sincronização com Firebase</h3>
+      <table id="tabela-sync">
+        <thead>
+          <tr><th>Tipo</th><th>Descrição</th><th>Status</th><th>Horário</th></tr>
+        </thead>
+        <tbody id="lista-sync"></tbody>
+      </table>
+      <div class="btn-group" style="margin-top:16px">
+        <button class="btn btn-primary" onclick="forcarSincronizacao()">🔄 Forçar Sincronização</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>📊 Estatísticas</h3>
+      <div id="stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-top:8px"></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+import {
+  getFirestore, doc, setDoc, getDoc, collection, getDocs, deleteDoc, onSnapshot
+} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+// ====== CONFIG FIREBASE (mesma do sistema principal) ======
+const firebaseConfig = {
+  apiKey: "AIzaSyD1miWD1YQms4N8-calFT9Oh2pewmhBxw",
+  authDomain: "oficinaorcamento-75d19.firebaseapp.com",
+  projectId: "oficinaorcamento-75d19",
+  storageBucket: "oficinaorcamento-75d19.firebasestorage.app",
+  messagingSenderId: "822648312531",
+  appId: "1:822648312531:web:ec82db370f17a28d13fa26"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ====== BANCO LOCAL (espelho do index.html) ======
+let database = {
+  veiculos: [],
+  servicos: {},
+  kits: {}
+};
+
+let kitServicosTemp = []; // serviços selecionados para o kit em edição
+let kitEditando = null;
+
+// ====== UTILITÁRIOS ======
+function notif(msg, tipo = 'info') {
+  const el = document.getElementById('notification');
+  el.textContent = msg;
+  el.className = 'notification ' + tipo;
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 3000);
+}
+
+function logSync(tipo, descricao, status = 'ok') {
+  const tbody = document.getElementById('lista-sync');
+  const tr = document.createElement('tr');
+  const agora = new Date().toLocaleTimeString('pt-BR');
+  tr.innerHTML = `<td>${tipo}</td><td>${descricao}</td>
+    <td><span class="status-badge ${status === 'ok' ? 'status-sync' : 'status-error'}">${status === 'ok' ? '✅ Sincronizado' : '❌ Erro'}</span></td>
+    <td>${agora}</td>`;
+  tbody.prepend(tr);
+}
+
+// ====== FIREBASE: CARREGAR CATÁLOGO ======
+async function carregarCatalogo() {
+  try {
+    const snap = await getDoc(doc(db, 'dadosglobais', 'catalogo'));
+    if (snap.exists()) {
+      const d = snap.data();
+      if (d.veiculos && d.veiculos.length) database.veiculos = d.veiculos;
+      if (d.servicos && Object.keys(d.servicos).length) database.servicos = d.servicos;
+      if (d.kits) database.kits = d.kits;
+      logSync('Catálogo', 'Carregado do Firestore', 'ok');
+    } else {
+      logSync('Catálogo', 'Nenhum catálogo global — dados padrão usados', 'ok');
+    }
+  } catch(e) {
+    logSync('Catálogo', 'Erro: ' + e.message, 'erro');
+  }
+  inicializarSelects();
+  atualizarStats();
+}
+
+// ====== FIREBASE: SALVAR CATÁLOGO GLOBAL ======
+async function salvarCatalogo(origem = '') {
+  try {
+    // Cria uma cópia limpa para evitar erros de campos vazios ou formatos incompatíveis
+    const dadosParaSalvar = JSON.parse(JSON.stringify({
+      veiculos: database.veiculos,
+      servicos: database.servicos,
+      kits: database.kits,
+      ultimaAtualizacao: new Date().toISOString()
+    }));
+
+    await setDoc(doc(db, 'dadosglobais', 'catalogo'), dadosParaSalvar);
+
+    logSync('Salvar', origem || 'Catálogo atualizado', 'ok');
+    atualizarStats();
+    return true;
+  } catch(e) {
+    console.error("Erro detalhado:", e);
+    logSync('Salvar', 'Erro: ' + e.message, 'erro');
+    return false;
+  }
+}
+
+// ====== SELECTS ======
+function inicializarSelects() {
+  ['s-veiculo', 'k-veiculo'].forEach(id => {
+    const sel = document.getElementById(id);
+    const val = sel.value;
+    sel.innerHTML = '<option value="">Selecione o veículo</option>';
+    database.veiculos.forEach(v => {
+      const o = document.createElement('option');
+      o.value = v; o.textContent = v;
+      sel.appendChild(o);
+    });
+    if (val) sel.value = val;
+  });
+  carregarListaVeiculos();
+}
+
+// ====== VEÍCULOS ======
+window.salvarVeiculo = async function() {
+  const nome = document.getElementById('v-nome').value.trim();
+  if (!nome) { notif('Digite o nome do veículo', 'error'); return; }
+  if (database.veiculos.includes(nome)) { notif('Veículo já cadastrado!', 'error'); return; }
+  database.veiculos.push(nome);
+  if (!database.servicos[nome]) database.servicos[nome] = {};
+  if (!database.kits[nome]) database.kits[nome] = {};
+  await salvarCatalogo('Veículo: ' + nome);
+  inicializarSelects();
+  limparVeiculo();
+  notif('Veículo "' + nome + '" adicionado!', 'success');
+};
+
+window.limparVeiculo = function() {
+  document.getElementById('v-nome').value = '';
+};
+
+window.excluirVeiculo = async function(nome) {
+  if (!confirm('Excluir "' + nome + '" e todos os seus serviços e kits?')) return;
+  database.veiculos = database.veiculos.filter(v => v !== nome);
+  delete database.servicos[nome];
+  delete database.kits[nome];
+  await salvarCatalogo('Veículo excluído: ' + nome);
+  inicializarSelects();
+  carregarListaVeiculos();
+  notif('Veículo excluído', 'success');
+};
+
+function carregarListaVeiculos() {
+  const div = document.getElementById('lista-veiculos');
+  if (!database.veiculos.length) { div.innerHTML = '<div class="empty">Nenhum veículo cadastrado.</div>'; return; }
+  let html = '<table><thead><tr><th>Veículo</th><th>Serviços</th><th>Kits</th><th>Ações</th></tr></thead><tbody>';
+  database.veiculos.forEach(v => {
+    const nServ = Object.keys(database.servicos[v] || {}).length;
+    const nKits = Object.keys(database.kits[v] || {}).length;
+    html += `<tr>
+      <td><strong>${v}</strong></td>
+      <td>${nServ}</td>
+      <td>${nKits}</td>
+      <td><button class="btn btn-danger" style="padding:5px 10px;font-size:0.75rem" onclick="excluirVeiculo('${v.replace(/'/g,"\'")}')">Excluir</button></td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  div.innerHTML = html;
+}
+
+// ====== SERVIÇOS ======
+window.adicionarPeca = function() {
+  const c = document.getElementById('s-pecas-container');
+  const row = document.createElement('div');
+  row.className = 'peca-row';
+  row.innerHTML = '<input type="text" class="peca-input" placeholder="Nome da peça"><button class="btn-remove" onclick="removerPeca(this)">✕</button>';
+  c.appendChild(row);
+};
+
+window.removerPeca = function(btn) {
+  btn.parentElement.remove();
+};
+
+function getPecas() {
+  return Array.from(document.querySelectorAll('.peca-input'))
+    .map(i => i.value.trim()).filter(v => v);
+}
+
+window.salvarServico = async function() {
+  const veiculo = document.getElementById('s-veiculo').value;
+  const nome    = document.getElementById('s-nome').value.trim();
+  const tpr     = document.getElementById('s-tpr').value.trim();
+  const tempo   = parseFloat(document.getElementById('s-tempo').value) || 0;
+  const global  = document.getElementById('s-global').value === 'true';
+  const pecas   = getPecas();
+
+  if (!veiculo) { notif('Selecione um veículo', 'error'); return; }
+  if (!nome)    { notif('Digite o nome do serviço', 'error'); return; }
+
+  const servico = { peca: nome, tpr, tempo, pecas };
+
+  if (global) {
+    // Adiciona em todos os veículos
+    database.veiculos.forEach(v => {
+      if (!database.servicos[v]) database.servicos[v] = {};
+      database.servicos[v][nome] = { ...servico, global: true };
+    });
+    await salvarCatalogo('Serviço global: ' + nome);
+    notif('Serviço "' + nome + '" adicionado a todos os veículos!', 'success');
+  } else {
+    if (!database.servicos[veiculo]) database.servicos[veiculo] = {};
+    database.servicos[veiculo][nome] = servico;
+    await salvarCatalogo('Serviço: ' + nome + ' → ' + veiculo);
+    notif('Serviço "' + nome + '" salvo!', 'success');
+  }
+
+  limparServico();
+  carregarServicosVeiculo();
+};
+
+window.limparServico = function() {
+  document.getElementById('s-nome').value = '';
+  document.getElementById('s-tpr').value = '';
+  document.getElementById('s-tempo').value = '';
+  document.getElementById('s-global').value = 'false';
+  const c = document.getElementById('s-pecas-container');
+  c.innerHTML = '<div class="peca-row"><input type="text" class="peca-input" placeholder="Nome da peça"><button class="btn-remove" onclick="removerPeca(this)">✕</button></div>';
+};
+
+window.carregarServicosVeiculo = function() {
+  const veiculo = document.getElementById('s-veiculo').value;
+  const div = document.getElementById('lista-servicos');
+  if (!veiculo) { div.innerHTML = '<div class="empty">Selecione um veículo.</div>'; return; }
+  const servicos = database.servicos[veiculo] || {};
+  const nomes = Object.keys(servicos);
+  if (!nomes.length) { div.innerHTML = '<div class="empty">Nenhum serviço cadastrado para este veículo.</div>'; return; }
+  let html = '<table><thead><tr><th>Serviço</th><th>TPR</th><th>Tempo (h)</th><th>Peças</th><th>Ações</th></tr></thead><tbody>';
+  nomes.forEach(nome => {
+    const s = servicos[nome];
+    const pecasHtml = (s.pecas || []).map(p => `<span class="tag">${p}</span>`).join('') || '—';
+    html += `<tr>
+      <td><strong>${nome}</strong>${s.global ? ' <span class="tag" style="background:#fef9c3;color:#854d0e">global</span>' : ''}</td>
+      <td>${s.tpr || '—'}</td>
+      <td>${s.tempo || 0}h</td>
+      <td>${pecasHtml}</td>
+      <td>
+        <button class="btn btn-primary" style="padding:4px 9px;font-size:0.75rem;margin-right:4px" onclick="editarServico('${veiculo.replace(/'/g,"\'")}','${nome.replace(/'/g,"\'")}')">Editar</button>
+        <button class="btn btn-danger" style="padding:4px 9px;font-size:0.75rem" onclick="excluirServico('${veiculo.replace(/'/g,"\'")}','${nome.replace(/'/g,"\'")}')">Excluir</button>
+      </td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  div.innerHTML = html;
+};
+
+window.editarServico = function(veiculo, nome) {
+  const s = database.servicos[veiculo]?.[nome];
+  if (!s) return;
+  document.getElementById('s-veiculo').value = veiculo;
+  document.getElementById('s-nome').value = nome;
+  document.getElementById('s-tpr').value = s.tpr || '';
+  document.getElementById('s-tempo').value = s.tempo || '';
+  document.getElementById('s-global').value = s.global ? 'true' : 'false';
+  const c = document.getElementById('s-pecas-container');
+  c.innerHTML = '';
+  const pecasArr = s.pecas && s.pecas.length ? s.pecas : [''];
+  pecasArr.forEach(p => {
+    const row = document.createElement('div');
+    row.className = 'peca-row';
+    row.innerHTML = `<input type="text" class="peca-input" placeholder="Nome da peça" value="${p}"><button class="btn-remove" onclick="removerPeca(this)">✕</button>`;
+    c.appendChild(row);
+  });
+  mostrarSecao('sec-servicos');
+  notif('Editando serviço "' + nome + '"', 'info');
+};
+
+window.excluirServico = async function(veiculo, nome) {
+  if (!confirm('Excluir serviço "' + nome + '"?')) return;
+  delete database.servicos[veiculo][nome];
+  await salvarCatalogo('Serviço excluído: ' + nome);
+  carregarServicosVeiculo();
+  notif('Serviço excluído', 'success');
+};
+
+// ====== KITS ======
+window.carregarServicosParaKit = function() {
+  kitServicosTemp = [];
+  atualizarListaServicosKit();
+};
+
+window.buscarServicosKit = function() {
+  const veiculo = document.getElementById('k-veiculo').value;
+  const termo   = document.getElementById('k-busca-servico').value.toLowerCase().trim();
+  const box     = document.getElementById('k-sugestoes');
+  if (!veiculo) { notif('Selecione um veículo primeiro', 'error'); box.style.display='none'; return; }
+  if (!termo)   { box.style.display='none'; return; }
+  const servicos = database.servicos[veiculo] || {};
+  const matches  = Object.keys(servicos).filter(n => n.toLowerCase().includes(termo));
+  if (!matches.length) { box.style.display='none'; return; }
+  box.innerHTML = '';
+  matches.forEach(nome => {
+    const s = servicos[nome];
+    const div = document.createElement('div');
+    div.className = 'sugestao-item';
+    div.innerHTML = `<strong>${nome}</strong> <small style="opacity:0.7">TPR: ${s.tpr} | ${s.tempo}h</small>`;
+    div.onclick = () => {
+      if (kitServicosTemp.some(x => x.nome === nome)) { notif('Já adicionado!', 'error'); return; }
+      kitServicosTemp.push({ nome, ...s });
+      atualizarListaServicosKit();
+      document.getElementById('k-busca-servico').value = '';
+      box.style.display = 'none';
+    };
+    box.appendChild(div);
+  });
+  box.style.display = 'block';
+};
+
+document.addEventListener('click', e => {
+  const box = document.getElementById('k-sugestoes');
+  if (!document.getElementById('k-busca-servico').contains(e.target) && !box.contains(e.target)) {
+    box.style.display = 'none';
+  }
+});
+
+function atualizarListaServicosKit() {
+  const div = document.getElementById('k-servicos-selecionados');
+  if (!kitServicosTemp.length) { div.innerHTML = '<div class="empty">Nenhum serviço selecionado.</div>'; return; }
+  div.innerHTML = kitServicosTemp.map((s, i) => `
+    <div class="kit-servico-item">
+      <div><strong>${s.nome}</strong> <small style="color:#64748b">TPR: ${s.tpr} | ${s.tempo}h</small></div>
+      <button class="btn-remove" onclick="removerServicoKit(${i})">✕</button>
+    </div>`).join('');
+}
+
+window.removerServicoKit = function(i) {
+  kitServicosTemp.splice(i, 1);
+  atualizarListaServicosKit();
+};
+
+window.salvarKit = async function() {
+  const veiculo = document.getElementById('k-veiculo').value;
+  const nome    = document.getElementById('k-nome').value.trim();
+  if (!veiculo) { notif('Selecione um veículo', 'error'); return; }
+  if (!nome)    { notif('Digite um nome para o kit', 'error'); return; }
+  if (!kitServicosTemp.length) { notif('Adicione pelo menos um serviço ao kit', 'error'); return; }
+
+  if (!database.kits[veiculo]) database.kits[veiculo] = {};
+  // Estrutura igual ao index.html: array de objetos {nome, peca, tpr, tempo, pecas[]}
+  database.kits[veiculo][nome] = kitServicosTemp.map(s => ({
+    nome: s.nome, peca: s.peca || s.nome, tpr: s.tpr, tempo: s.tempo, pecas: s.pecas || []
+  }));
+
+  await salvarCatalogo('Kit: ' + nome + ' → ' + veiculo);
+  limparKit();
+  carregarKitsVeiculo();
+  notif('Kit "' + nome + '" salvo!', 'success');
+};
+
+window.limparKit = function() {
+  document.getElementById('k-nome').value = '';
+  document.getElementById('k-busca-servico').value = '';
+  kitServicosTemp = [];
+  kitEditando = null;
+  atualizarListaServicosKit();
+};
+
+window.carregarKitsVeiculo = function() {
+  const veiculo = document.getElementById('k-veiculo').value;
+  const div = document.getElementById('lista-kits');
+  if (!veiculo) { div.innerHTML = '<div class="empty">Selecione um veículo.</div>'; return; }
+  const kits = database.kits[veiculo] || {};
+  const nomes = Object.keys(kits);
+  if (!nomes.length) { div.innerHTML = '<div class="empty">Nenhum kit cadastrado para este veículo.</div>'; return; }
+  let html = '';
+  nomes.forEach(nome => {
+    const servicos = kits[nome];
+    const tags = servicos.map(s => `<span class="tag">${s.nome}</span>`).join('');
+    html += `<div class="card" style="margin-bottom:12px;padding:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <strong>${nome}</strong>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-primary" style="padding:4px 9px;font-size:0.75rem" onclick="editarKit('${veiculo.replace(/'/g,"\'")}','${nome.replace(/'/g,"\'")}')">Editar</button>
+          <button class="btn btn-danger" style="padding:4px 9px;font-size:0.75rem" onclick="excluirKit('${veiculo.replace(/'/g,"\'")}','${nome.replace(/'/g,"\'")}')">Excluir</button>
+        </div>
+      </div>
+      <div style="font-size:0.8rem;color:#475569">Serviços: ${tags}</div>
+    </div>`;
+  });
+  div.innerHTML = html;
+};
+
+window.editarKit = function(veiculo, nome) {
+  const kit = database.kits[veiculo]?.[nome];
+  if (!kit) return;
+  document.getElementById('k-veiculo').value = veiculo;
+  document.getElementById('k-nome').value = nome;
+  kitServicosTemp = kit.map(s => ({ ...s }));
+  kitEditando = { veiculo, nomeAntigo: nome };
+  atualizarListaServicosKit();
+  mostrarSecao('sec-kits');
+  notif('Editando kit "' + nome + '"', 'info');
+};
+
+window.excluirKit = async function(veiculo, nome) {
+  if (!confirm('Excluir kit "' + nome + '"?')) return;
+  delete database.kits[veiculo][nome];
+  await salvarCatalogo('Kit excluído: ' + nome);
+  carregarKitsVeiculo();
+  notif('Kit excluído', 'success');
+};
+
+// ====== SINCRONIZAÇÃO ======
+window.forcarSincronizacao = async function() {
+  notif('Sincronizando...', 'info');
+  await carregarCatalogo();
+  notif('Sincronização concluída!', 'success');
+};
+
+function atualizarStats() {
+  const nV = database.veiculos.length;
+  const nS = Object.values(database.servicos).reduce((a, v) => a + Object.keys(v).length, 0);
+  const nK = Object.values(database.kits).reduce((a, v) => a + Object.keys(v).length, 0);
+  document.getElementById('stats').innerHTML = [
+    ['🚗 Veículos', nV, '#dbeafe', '#1d4ed8'],
+    ['🔧 Serviços', nS, '#d1fae5', '#065f46'],
+    ['📦 Kits',     nK, '#fef3c7', '#92400e'],
+  ].map(([label, val, bg, color]) => `
+    <div style="background:${bg};border-radius:10px;padding:16px;text-align:center">
+      <div style="font-size:1.5rem;font-weight:700;color:${color}">${val}</div>
+      <div style="font-size:0.8rem;color:${color};margin-top:4px">${label}</div>
+    </div>`).join('');
+}
+
+// ====== NAVEGAÇÃO ======
+window.mostrarSecao = function(id, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  else {
+    const mapa = { 'sec-veiculos': 0, 'sec-servicos': 1, 'sec-kits': 2, 'sec-sync': 3 };
+    document.querySelectorAll('.nav-btn')[mapa[id]]?.classList.add('active');
+  }
+};
+
+// ====== INIT ======
+carregarCatalogo();
+</script>
+</body>
+</html>
