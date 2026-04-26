@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Cadastro Orçamento Oficina - Gestão de Orçamentos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        :root {
+            --primary: #2563eb;
+            --primary-light: #3b82f6;
+            --primary-dark: #1d4ed8;
+            --accent: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --background: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --text-lighter: #94a3b8;
+            --border: #e2e8f0;
+            --border-light: #f1f5f9;
+            --shadow-sm: 0 1px 2px 0 rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+            --sidebar-left-width: 224px;   /* reduzido em 20% (antes 280px) */
+            --sidebar-right-width: 364px;
+        }
+        body.theme-dark {
+            --primary: #3b82f6;
+            --primary-light: #60a5fa;
+            --primary-dark: #2563eb;
+            --accent: #f87171;
+            --success: #34d399;
+            --warning: #fbbf24;
+            --background: #0f172a;
+            --card-bg: #1e293b;
+            --text: #f1f5f9;
+            --text-light: #cbd5e1;
+            --text-lighter: #94a3b8;
+            --border: #334155;
+            --border-light: #1e293b;
+            --shadow-sm: 0 1px 2px 0 rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.4);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.5);
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--background); color: var(--text); transition: background 0.2s, color 0.2s; overflow-x: hidden; }
+        
+        body.theme-dark input:not([type="button"]):not([type="submit"]):not([type="reset"]),
+        body.theme-dark select,
+        body.theme-dark textarea,
+        body.theme-dark .form-group input,
+        body.theme-dark .form-group select,
+        body.theme-dark .form-group textarea,
+        body.theme-dark .peca-nome,
+        body.theme-dark #busca-servico-kit,
+        body.theme-dark #valor-hora-dash {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            border-color: #cbd5e1 !important;
+        }
+        body.theme-dark input::placeholder,
+        body.theme-dark textarea::placeholder { color: #6c757d !important; }
+        body.theme-dark select option { background-color: white; color: black; }
+        
+        /* SIDEBAR ESQUERDA (colapsável) */
+        body.sidebar-left-collapsed .sidebar-left {
+            transform: translateX(-100%);
+        }
+        body.sidebar-left-collapsed .main-wrapper {
+            margin-left: 0;
+        }
+        /* botão flutuante para reabrir menu (aparece somente quando colapsado) */
+        .sidebar-float-toggle {
+            position: fixed;
+            left: 16px;
+            top: 16px;
+            z-index: 1200;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            width: 44px;
+            height: 44px;
+            font-size: 1.6rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: var(--shadow-md);
+            transition: 0.2s;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .sidebar-float-toggle:hover {
+            background: var(--primary-dark);
+            transform: scale(1.02);
+        }
+        body.sidebar-left-collapsed .sidebar-float-toggle {
+            display: flex;
+        }
+        
+        .sidebar-left {
+            position: fixed; left: 0; top: 0; bottom: 0; width: var(--sidebar-left-width);
+            background: var(--card-bg); border-right: 1px solid var(--border);
+            display: flex; flex-direction: column; z-index: 1000; transition: transform 0.3s ease;
+            box-shadow: var(--shadow-md);
+        }
+        .sidebar-right {
+            position: fixed; right: 0; top: 0; bottom: 0; width: var(--sidebar-right-width);
+            background: var(--card-bg); border-left: 1px solid var(--border);
+            display: flex; flex-direction: column; z-index: 1000; transition: transform 0.3s ease;
+            box-shadow: var(--shadow-md);
+        }
+        .sidebar-header { 
+            padding: 18px 16px 14px; 
+            border-bottom: 1px solid var(--border-light); 
+            display: flex; 
+            flex-direction: column;
+            gap: 12px;
+        }
+        .logo { display: flex; align-items: center; gap: 10px; font-size: 1rem; font-weight: 700; color: var(--primary); justify-content: space-between; }
+        .logo span { font-size: 0.85rem; line-height: 1.2; }
+        .collapse-btn {
+            background: transparent; border: none; font-size: 1.2rem; cursor: pointer;
+            color: var(--primary); width: 32px; height: 32px; display: flex;
+            align-items: center; justify-content: center; border-radius: 8px;
+            transition: background 0.2s;
+        }
+        .collapse-btn:hover { background: rgba(59,130,246,0.1); }
+        .stats-mini { 
+            display: flex; 
+            justify-content: space-between; 
+            gap: 8px; 
+            flex-wrap: wrap;
+        }
+        .stat-mini-card { 
+            flex: 1; 
+            background: rgba(59,130,246,0.08); 
+            border-radius: 14px; 
+            padding: 6px 4px; 
+            text-align: center; 
+            min-width: 70px;
+        }
+        .stat-mini-label { font-size: 0.6rem; font-weight: 600; text-transform: uppercase; color: var(--text-light); letter-spacing: 0.3px; }
+        .stat-mini-value { font-size: 1.1rem; font-weight: 800; color: var(--primary); line-height: 1.2; }
+        .sidebar-nav { flex: 1; padding: 16px 10px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
+        .nav-item {
+            display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px;
+            cursor: pointer; transition: all 0.2s ease; color: var(--text-light); font-weight: 500;
+            background: transparent; border: none; width: 100%; text-align: left; font-size: 0.8rem; font-family: inherit;
+        }
+        .nav-item:hover { background: rgba(59, 130, 246, 0.1); color: var(--primary); }
+        .nav-item.active { background: var(--primary); color: white; box-shadow: var(--shadow-sm); }
+        .nav-item.active .nav-icon { color: white; }
+        .nav-icon { font-size: 1.1rem; width: 24px; display: flex; justify-content: center; }
+        .sidebar-footer { padding: 14px 10px; border-top: 1px solid var(--border-light); display: flex; flex-direction: column; gap: 8px; }
+        .logout-btn { background: rgba(239, 68, 68, 0.1); color: var(--accent); }
+        .logout-btn:hover { background: rgba(239, 68, 68, 0.2); }
+        .theme-toggle-btn { background: rgba(100, 116, 139, 0.15); color: var(--text); display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; font-size: 0.8rem; padding: 8px 10px; }
+        .theme-toggle-btn:hover { background: rgba(59, 130, 246, 0.2); }
+        .main-wrapper { margin-left: var(--sidebar-left-width); margin-right: var(--sidebar-right-width); min-height: 100vh; transition: margin 0.3s; }
+        .main-content { padding: 28px 32px; max-width: 1600px; }
+        .card { background: var(--card-bg); border-radius: 24px; padding: 24px; margin-bottom: 24px; border: 1px solid var(--border-light); box-shadow: var(--shadow-sm); }
+        .card-title { font-size: 1.25rem; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; padding-bottom: 12px; border-bottom: 2px solid var(--primary); color: var(--text); }
+        
+        .right-panel-content { flex: 1; overflow-y: auto; padding: 16px; }
+        .panel-section { margin-bottom: 28px; }
+        .panel-section-title { font-size: 1rem; font-weight: 700; margin-bottom: 14px; padding-bottom: 6px; border-bottom: 2px solid var(--primary); color: var(--text); display: flex; align-items: center; gap: 8px; }
+        .panel-item-list { list-style: none; margin: 0; padding: 0; }
+        .panel-item {
+            display: flex; justify-content: space-between; align-items: center; padding: 10px 12px;
+            margin-bottom: 8px; background: var(--background); border-radius: 14px; border: 1px solid var(--border-light);
+            transition: all 0.2s;
+        }
+        .panel-item:hover { border-color: var(--primary); background: rgba(59,130,246,0.05); }
+        .panel-item-info { flex: 1; cursor: pointer; }
+        .panel-item-name { font-weight: 600; font-size: 0.85rem; color: var(--text); }
+        .panel-item-details { font-size: 0.7rem; color: var(--text-light); margin-top: 2px; }
+        .panel-item-actions { display: flex; gap: 6px; }
+        .panel-item-actions button { background: none; border: none; cursor: pointer; font-size: 1rem; opacity: 0.7; transition: 0.2s; color: var(--text); }
+        .panel-item-actions button:hover { opacity: 1; }
+        .empty-panel { text-align: center; padding: 24px 12px; color: var(--text-light); font-size: 0.8rem; }
+        .select-veiculo-panel { margin-bottom: 20px; padding: 0 8px; }
+        .select-veiculo-panel label { display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 6px; color: var(--text-light); }
+        .select-veiculo-panel select { width: 100%; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text); font-family: inherit; font-size: 0.85rem; }
+        .filter-panel { margin: 12px 8px 20px 8px; position: relative; }
+        .filter-panel input { width: 100%; padding: 10px 12px 10px 36px; border-radius: 14px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text); font-size: 0.85rem; }
+        .filter-panel .filter-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 1rem; color: var(--text-light); }
+        
+        @media (max-width: 1024px) {
+            .sidebar-right { transform: translateX(100%); }
+            .sidebar-right.mobile-open-right { transform: translateX(0); }
+            .main-wrapper { margin-right: 0; }
+        }
+        @media (max-width: 768px) {
+            .sidebar-left { transform: translateX(-100%); }
+            .sidebar-left.mobile-open-left { transform: translateX(0); }
+            .sidebar-right { transform: translateX(100%); }
+            .main-wrapper { margin-left: 0; margin-right: 0; }
+            .menu-toggle-btn-left, .menu-toggle-btn-right {
+                display: block; position: fixed; top: 16px; z-index: 1100;
+                background: var(--primary); color: white; border: none; border-radius: 12px; padding: 10px; cursor: pointer;
+            }
+            .menu-toggle-btn-left { left: 16px; }
+            .menu-toggle-btn-right { right: 16px; }
+            .main-content { padding: 20px 16px; }
+            /* Em mobile o botão flutuante padrão também funciona, mas já tem o botão de menu */
+            .sidebar-float-toggle { top: auto; bottom: 20px; left: 20px; background: var(--primary); }
+        }
+        .menu-toggle-btn-left, .menu-toggle-btn-right { display: none; }
+
+        .btn { padding: 12px 18px; border-radius: 14px; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; font-family: inherit; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-warning { background: var(--warning); color: white; }
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.85rem; color: var(--text); }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 14px;
+            background: var(--card-bg); color: var(--text); font-family: inherit; font-size: 0.9rem;
+        }
+        .flex-buttons { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; }
+        .notification { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); padding: 12px 24px; border-radius: 40px; color: white; font-weight: 600; z-index: 2000; display: none; box-shadow: var(--shadow-lg); font-size: 0.85rem; }
+        .auto-save-indicator { position: fixed; bottom: 20px; right: 20px; background: var(--success); color: white; padding: 6px 14px; border-radius: 40px; font-size: 0.7rem; display: none; z-index: 1500; }
+        .page { display: none; animation: fadeIn 0.25s ease; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-light); }
+        .pecas-container, .selected-services-list { border: 1px solid var(--border); border-radius: 14px; padding: 12px; background: var(--background); margin-bottom: 12px; }
+        .peca-item { display: flex; gap: 10px; margin-bottom: 8px; align-items: center; }
+        .btn-add-peca, .btn-remove-peca { background: var(--success); color: white; border: none; border-radius: 10px; padding: 8px 12px; font-size: 0.75rem; font-weight: 600; cursor: pointer; }
+        .btn-remove-peca { background: var(--accent); }
+        .selected-service-item { display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); padding: 10px; border-radius: 12px; margin-bottom: 8px; }
+        .action-btn-small { background: var(--primary); color: white; border: none; padding: 6px 12px; border-radius: 10px; font-size: 0.7rem; font-weight: 600; cursor: pointer; margin-right: 6px; }
+        .btn-star { background: transparent; border: 1px solid var(--warning); color: var(--warning); border-radius: 8px; padding: 4px 8px; font-size: 0.8rem; cursor: pointer; margin-right: 6px; }
+        .btn-star.ativo { background: var(--warning); color: white; }
+        .table-container { overflow-x: auto; border-radius: 16px; border: 1px solid var(--border-light); margin-top: 16px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--border-light); }
+        th { background: var(--background); font-weight: 600; color: var(--text-light); }
+        .login-card { max-width: 420px; margin: 0 auto; }
+        .valor-preview {
+            background: var(--primary-light);
+            color: white;
+            border-radius: 14px;
+            padding: 12px 14px;
+            font-weight: 600;
+            text-align: center;
+            display: inline-block;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <button class="menu-toggle-btn-left" id="mobileMenuToggleLeft" onclick="toggleMobileSidebarLeft()">☰</button>
+    <button class="menu-toggle-btn-right" id="mobileMenuToggleRight" onclick="toggleMobileSidebarRight()">✖</button>
+    
+    <!-- Botão flutuante para reabrir menu esquerdo (aparece apenas quando colapsado) -->
+    <button class="sidebar-float-toggle" id="sidebarFloatToggle" title="Abrir menu">☰</button>
+
+    <!-- MENU LATERAL ESQUERDO -->
+    <div class="sidebar-left" id="sidebarLeft">
+        <div class="sidebar-header">
+            <div class="logo">
+                <button id="collapseSidebarBtn" class="collapse-btn" title="Ocultar/Exibir menu">◀</button>
+                <span>Cadastro Orçamento</span>
+            </div>
+            <div class="stats-mini">
+                <div class="stat-mini-card"><div class="stat-mini-label">Veículos</div><div class="stat-mini-value" id="sidebar-count-veiculos">0</div></div>
+                <div class="stat-mini-card"><div class="stat-mini-label">Serviços</div><div class="stat-mini-value" id="sidebar-count-servicos">0</div></div>
+            </div>
+        </div>
+        <div class="sidebar-nav">
+            <button class="nav-item" data-page="servico-veiculos" onclick="abrirPagina('servico-veiculos')"><span class="nav-icon">🚗</span><span>Veículos</span></button>
+            <button class="nav-item" data-page="servico-cadastrar" onclick="abrirPagina('servico-cadastrar')"><span class="nav-icon">🔧</span><span>Serviços</span></button>
+            <button class="nav-item" data-page="servico-kits" onclick="abrirPagina('servico-kits')"><span class="nav-icon">📦</span><span>Kits</span></button>
+            <button class="nav-item" data-page="dados" onclick="abrirPagina('dados')"><span class="nav-icon">📊</span><span>Dados</span></button>
+        </div>
+        <div class="sidebar-footer">
+            <button class="nav-item theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()"><span class="nav-icon" id="themeIcon">🌙</span><span id="themeText">Modo Escuro</span></button>
+            <button class="nav-item logout-btn" onclick="fazerLogout()"><span class="nav-icon">🚪</span><span>Sair</span></button>
+            <div id="user-status-sidebar" style="text-align:center; margin-top: 4px; font-size:0.7rem;">Não autenticado</div>
+        </div>
+    </div>
+
+    <!-- MENU LATERAL DIREITO (PAINEL DE SERVIÇOS E KITS) -->
+    <div class="sidebar-right" id="sidebarRight">
+        <div class="sidebar-header">
+            <div class="logo"><div class="logo-icon">📋</div><span>Serviços & Kits</span></div>
+        </div>
+        <div class="right-panel-content">
+            <div class="select-veiculo-panel">
+                <label>🚗 Selecione o Veículo</label>
+                <select id="panel-veiculo-select">
+                    <option value="">Carregando veículos...</option>
+                </select>
+            </div>
+            <div class="filter-panel">
+                <span class="filter-icon">🔍</span>
+                <input type="text" id="panel-filter-input" placeholder="Filtrar serviços ou kits...">
+            </div>
+            <div class="panel-section">
+                <div class="panel-section-title">🔧 Serviços</div>
+                <div id="panel-servicos-list" class="panel-item-list"><div class="empty-panel">Selecione um veículo</div></div>
+            </div>
+            <div class="panel-section">
+                <div class="panel-section-title">📦 Kits de Serviços</div>
+                <div id="panel-kits-list" class="panel-item-list"><div class="empty-panel">Selecione um veículo</div></div>
+            </div>
+        </div>
+        <div class="sidebar-footer"><div style="text-align:center; font-size:0.7rem; color:var(--text-light);">Clique nos itens para editar</div></div>
+    </div>
+
+    <div class="main-wrapper">
+        <main class="main-content">
+            <div id="notification" class="notification"></div>
+            <div id="auto-save-indicator" class="auto-save-indicator">✓ Salvando</div>
+
+            <!-- LOGIN -->
+            <div id="page-login" class="page active">
+                <div class="card login-card">
+                    <div style="text-align:center; margin-bottom:20px;">
+                        <div style="width:70px;height:70px;background:var(--primary);border-radius:20px;display:inline-flex;align-items:center;justify-content:center;font-size:2rem;margin-bottom:12px;">💰</div>
+                        <h2 style="font-weight:800;">Cadastro Orçamento Oficina</h2><p style="color:var(--text-light);">Acesse para gerenciar</p>
+                    </div>
+                    <div class="form-group"><label>E-mail</label><input type="email" id="login-email" placeholder="nome@oficina.com"></div>
+                    <div class="form-group"><label>Senha</label><input type="password" id="login-password" placeholder="••••••••"></div>
+                    <button class="btn btn-primary" style="width:100%;" onclick="fazerLogin()">Entrar</button>
+                    <p id="login-error" style="color:var(--accent);font-size:0.75rem;margin-top:12px;text-align:center;"></p>
+                </div>
+            </div>
+
+            <!-- DASHBOARD -->
+            <div id="dashboard" class="page">
+                <div class="card">
+                    <h2 class="card-title"><span>💰</span> Mão de Obra</h2>
+                    <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                        <input type="number" id="valor-hora-dash" step="0.01" placeholder="Valor por hora (R$)" style="flex:1; padding:12px; border-radius:14px; border:1px solid var(--border); background:var(--card-bg); color:var(--text);">
+                        <button class="btn btn-primary" onclick="salvarValorHoraDash()">Salvar valor/hora</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VEÍCULOS -->
+            <div id="servico-veiculos" class="page">
+                <div class="card"><h2 class="card-title"><span>🚗</span> Gerenciar Veículos</h2>
+                    <div class="form-group"><label>Novo Veículo</label><input type="text" id="novo-veiculo" placeholder="Ex: SUV, Hatch"><button class="btn btn-primary" style="margin-top:12px;" onclick="adicionarVeiculo()">➕ Adicionar</button></div>
+                    <div id="lista-veiculos"></div>
+                </div>
+            </div>
+
+            <!-- SERVIÇOS -->
+            <div id="servico-cadastrar" class="page">
+                <div class="card">
+                    <h2 class="card-title"><span>🔧</span> Cadastro de Serviços</h2>
+                    <div class="form-group"><label>Veículo</label><select id="veiculo-config"></select></div>
+                    <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                        <div class="form-group" style="flex:1"><label>TPR</label><input type="text" id="tpr"></div>
+                        <div class="form-group" style="flex:1"><label>Tempo (h)</label><input type="number" id="tempo" step="0.1" value="0"></div>
+                        <div class="form-group" style="flex:0.8">
+                            <label>Valor Estimado (R$)</label>
+                            <div id="valor-servico-preview" class="valor-preview">R$ 0,00</div>
+                        </div>
+                    </div>
+                    <div class="form-group"><label>Descrição</label><input type="text" id="descricao-servico" placeholder="Opcional"></div>
+                    <div class="form-group"><label>Peças</label><div id="pecas-container" class="pecas-container"><div class="peca-item"><input type="text" class="peca-nome" placeholder="Nome da peça"><button type="button" class="btn-remove-peca" onclick="removerPeca(this)">🗑️</button></div></div><button type="button" class="btn-add-peca" onclick="adicionarPeca()">➕ Adicionar Peça</button></div>
+                    <div class="btn-group"><button class="btn btn-success" id="btn-salvar-servico" onclick="adicionarServicoConfig()">💾 Salvar</button><button class="btn btn-warning" onclick="limparFormConfig()">🔄 Limpar</button></div>
+                    <div style="margin-top:28px;"><h3 style="font-weight:700; margin-bottom:12px;">📋 Tabela de Serviços</h3><div id="servicos-vazio" class="empty-state">Selecione um veículo</div><div class="table-container" id="tabela-config-container" style="display:none"><table id="tabela-config"><thead><tr><th>Serviço</th><th>Peças</th><th>TPR</th><th>Tempo</th><th>Ações</th></tr></thead><tbody></tbody></table></div></div>
+                </div>
+            </div>
+
+            <!-- KITS -->
+            <div id="servico-kits" class="page">
+                <div class="card">
+                    <h2 class="card-title"><span>📦</span> Kits de Serviços</h2>
+                    <div class="form-group"><label>Veículo</label><select id="kit-veiculo"></select></div>
+                    <div class="form-group"><label>Nome do Kit</label><input type="text" id="kit-nome" placeholder="Ex: Revisão Premium"></div>
+                    <div class="form-group"><label>Adicionar serviço</label><div style="position:relative;"><input type="text" id="busca-servico-kit" placeholder="Digite o nome do serviço" style="width:100%; padding:10px; border-radius:12px; border:1px solid var(--border);"><div id="sugestoes-servicos-kit" style="position:absolute; top:100%; left:0; right:0; background:var(--card-bg); border:1px solid var(--border); border-radius:12px; z-index:100; display:none; max-height:200px; overflow-y:auto;"></div></div><button class="btn-add-peca" style="margin-top:8px;" onclick="adicionarServicoAoKit()">➕ Adicionar à lista</button></div>
+                    <div><label>Serviços no kit</label><div id="selected-services-list" class="selected-services-list"><div class="empty-state">Nenhum serviço</div></div></div>
+                    <div class="btn-group"><button class="btn btn-success" onclick="salvarKit()">💾 Salvar Kit</button><button class="btn btn-warning" onclick="limparFormKit()">🔄 Limpar</button></div>
+                    <div style="margin-top:20px;"><h3 style="font-weight:700; margin-bottom:12px;">Kits Cadastrados</h3><div id="lista-kits"></div></div>
+                </div>
+            </div>
+
+            <!-- DADOS -->
+            <div id="dados" class="page">
+                <div class="card">
+                    <h2 class="card-title"><span>📊</span> Backup e Importação de Dados</h2>
+                    <p style="margin-bottom: 20px; color: var(--text-light);">Exporte todos os seus dados (veículos, serviços e kits) para um arquivo Excel ou importe dados de um arquivo Excel previamente exportado.</p>
+                    <div class="flex-buttons">
+                        <button class="btn btn-primary" onclick="exportarDadosExcel()">📎 Exportar para Excel</button>
+                        <label class="btn btn-secondary" style="cursor:pointer; display:inline-block; background:var(--success);">📂 Importar Excel<input type="file" id="importExcelInput" accept=".xlsx, .xls" style="display:none;" onchange="importarDadosExcel(event)"></label>
+                    </div>
+                    <p style="margin-top: 20px; font-size: 0.8rem; color: var(--text-lighter);">⚠️ A importação substituirá TODOS os dados atuais (veículos, serviços, kits) pelos dados do arquivo. Esta ação é irreversível.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD1miWD1YQms4N8-calFT9Oh2p_ewmhBxw",
+            authDomain: "oficinaorcamento-75d19.firebaseapp.com",
+            projectId: "oficinaorcamento-75d19",
+            storageBucket: "oficinaorcamento-75d19.firebasestorage.app",
+            messagingSenderId: "822648312531",
+            appId: "1:822648312531:web:ec82db370f17a28d13fa26"
+        };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let database = { veiculos: [], servicos: {}, kits: {}, valorHora: 50.0 };
+        let usuarioAtual = null;
+        let servicoEditando = null;
+        let servicosSelecionadosKit = [];
+        let kitEditando = null;
+        let autoSaveTimeout;
+        let currentFilter = "";
+
+        // Ordenação e helpers
+        function ordenarStrings(arr) { return arr.slice().sort((a,b) => a.localeCompare(b, 'pt', { sensitivity: 'base' })); }
+        function ordenarVeiculos() { database.veiculos = ordenarStrings(database.veiculos); }
+
+        // Tema
+        function initTheme() { const saved = localStorage.getItem('oficina_theme'); if(saved==='dark'){ document.body.classList.add('theme-dark'); updateThemeUI(true); } else { updateThemeUI(false); } }
+        function updateThemeUI(isDark){ const icon=document.getElementById('themeIcon'), text=document.getElementById('themeText'); if(isDark){ icon.textContent='☀️'; text.textContent='Modo Claro'; } else{ icon.textContent='🌙'; text.textContent='Modo Escuro'; } }
+        window.toggleTheme = () => { const isDark = document.body.classList.toggle('theme-dark'); localStorage.setItem('oficina_theme', isDark ? 'dark' : 'light'); updateThemeUI(isDark); };
+        initTheme();
+
+        // Controle de colapso esquerdo + botão flutuante
+        function initSidebarCollapse() {
+            const saved = localStorage.getItem('sidebar_left_collapsed');
+            if (saved === 'true') {
+                document.body.classList.add('sidebar-left-collapsed');
+                updateCollapseButtonIcon(true);
+            } else {
+                updateCollapseButtonIcon(false);
+            }
+            const toggleBtn = document.getElementById('collapseSidebarBtn');
+            const floatBtn = document.getElementById('sidebarFloatToggle');
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', () => {
+                    const isCollapsed = document.body.classList.toggle('sidebar-left-collapsed');
+                    localStorage.setItem('sidebar_left_collapsed', isCollapsed);
+                    updateCollapseButtonIcon(isCollapsed);
+                });
+            }
+            if (floatBtn) {
+                floatBtn.addEventListener('click', () => {
+                    document.body.classList.remove('sidebar-left-collapsed');
+                    localStorage.setItem('sidebar_left_collapsed', 'false');
+                    updateCollapseButtonIcon(false);
+                });
+            }
+        }
+        function updateCollapseButtonIcon(collapsed) {
+            const btn = document.getElementById('collapseSidebarBtn');
+            if (btn) btn.textContent = collapsed ? '▶' : '◀';
+        }
+        initSidebarCollapse();
+
+        function atualizarContadoresMenu() {
+            document.getElementById('sidebar-count-veiculos').innerText = database.veiculos.length;
+            let total=0; for(let v in database.servicos) total+=Object.keys(database.servicos[v]).length;
+            document.getElementById('sidebar-count-servicos').innerText = total;
+        }
+
+        function atualizarPreviewValorServico() {
+            const tempoInput = document.getElementById('tempo');
+            const previewDiv = document.getElementById('valor-servico-preview');
+            if (!tempoInput || !previewDiv) return;
+            const horas = parseFloat(tempoInput.value) || 0;
+            const valorTotal = horas * (database.valorHora || 0);
+            previewDiv.textContent = `R$ ${valorTotal.toFixed(2)}`;
+        }
+        function configurarPreviewServico() {
+            const tempoInput = document.getElementById('tempo');
+            if (tempoInput && !tempoInput._previewListener) {
+                tempoInput.addEventListener('input', () => atualizarPreviewValorServico());
+                tempoInput._previewListener = true;
+            }
+            atualizarPreviewValorServico();
+        }
+
+        async function toggleKitGlobal(veiculo, nomeKit) {
+            const kit = database.kits[veiculo]?.[nomeKit];
+            if (!kit) return;
+            const isGlobal = kit.global === true;
+            if (!isGlobal) {
+                kit.global = true;
+                for (const outroVeic of database.veiculos) {
+                    if (outroVeic === veiculo) continue;
+                    if (!database.kits[outroVeic]) database.kits[outroVeic] = {};
+                    database.kits[outroVeic][nomeKit] = JSON.parse(JSON.stringify(kit));
+                    database.kits[outroVeic][nomeKit].global = true;
+                }
+                mostrarNotificacao(`Kit "${nomeKit}" agora é GLOBAL para todos os veículos`, 'success');
+            } else {
+                kit.global = false;
+                for (const outroVeic of database.veiculos) {
+                    if (outroVeic === veiculo) continue;
+                    if (database.kits[outroVeic]?.[nomeKit]) delete database.kits[outroVeic][nomeKit];
+                    if (database.kits[outroVeic] && Object.keys(database.kits[outroVeic]).length === 0) delete database.kits[outroVeic];
+                }
+                mostrarNotificacao(`Kit "${nomeKit}" não é mais GLOBAL`, 'info');
+            }
+            await salvarDados();
+            atualizarTodasTelas();
+        }
+
+        async function salvarDados() {
+            clearTimeout(autoSaveTimeout);
+            autoSaveTimeout = setTimeout(async () => {
+                if(usuarioAtual){
+                    localStorage.setItem(`orcamento_${usuarioAtual.uid}`, JSON.stringify({ veiculos: database.veiculos, servicos: database.servicos, kits: database.kits, valorHora: database.valorHora }));
+                    await setDoc(doc(db, "dados_globais", "catalogo"), { veiculos: database.veiculos, servicos: database.servicos, kits: database.kits, ultimaAtualizacao: new Date().toISOString() });
+                    await setDoc(doc(db, "usuarios", usuarioAtual.uid, "config", "preferencias"), { valorHora: database.valorHora });
+                }
+                const ind=document.getElementById('auto-save-indicator'); ind.style.display='block'; setTimeout(()=>ind.style.display='none',1200);
+                atualizarContadoresMenu();
+                atualizarPainelDireitoComFiltro();
+            },500);
+        }
+
+        async function carregarDadosUsuario(uid){
+            const catalogoSnap = await getDoc(doc(db,"dados_globais","catalogo"));
+            if(catalogoSnap.exists()){ const d=catalogoSnap.data(); if(d.veiculos) database.veiculos = d.veiculos; if(d.servicos) database.servicos = d.servicos; if(d.kits) database.kits = d.kits; }
+            const configSnap = await getDoc(doc(db,"usuarios",uid,"config","preferencias"));
+            if(configSnap.exists() && configSnap.data().valorHora) database.valorHora=configSnap.data().valorHora;
+            ordenarVeiculos();
+            onSnapshot(doc(db,"dados_globais","catalogo"), (snap)=>{ 
+                if(snap.exists()){ const c=snap.data(); if(c.veiculos) database.veiculos = c.veiculos; if(c.servicos) database.servicos = c.servicos; if(c.kits) database.kits = c.kits; ordenarVeiculos(); atualizarTodasTelas(); } 
+            });
+            atualizarTodasTelas();
+        }
+        
+        function atualizarTodasTelas(){
+            ordenarVeiculos();
+            atualizarContadoresMenu();
+            document.getElementById('valor-hora-dash').value = database.valorHora;
+            carregarListaVeiculosUI();
+            preencherSelectsVeiculos();
+            popularSelectVeiculosPainelDireito();
+            const vcfg=document.getElementById('veiculo-config'); 
+            const veiculoSelecionado = vcfg ? vcfg.value : '';
+            if(veiculoSelecionado) atualizarTabelaConfig(veiculoSelecionado);
+            const kcfg = document.getElementById('kit-veiculo');
+            const kitVeiculo = kcfg ? kcfg.value : '';
+            if(kitVeiculo) carregarListaKitsUI(kitVeiculo);
+            atualizarPainelDireitoComFiltro();
+            configurarPreviewServico();
+        }
+        
+        function preencherSelectsVeiculos(){
+            const veiculosOrdenados = ordenarStrings(database.veiculos);
+            ['veiculo-config', 'kit-veiculo'].forEach(id => {
+                const sel = document.getElementById(id);
+                if(!sel) return;
+                const valorAtual = sel.value;
+                sel.innerHTML = '<option value="">Selecione um veículo</option>';
+                veiculosOrdenados.forEach(v => { sel.innerHTML += `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`; });
+                if(valorAtual && veiculosOrdenados.includes(valorAtual)) sel.value = valorAtual;
+                else sel.value = "";
+            });
+        }
+        
+        function popularSelectVeiculosPainelDireito(){
+            const select = document.getElementById('panel-veiculo-select');
+            if(!select) return;
+            const veiculosOrdenados = ordenarStrings(database.veiculos);
+            const valorAtual = select.value;
+            select.innerHTML = '<option value="">Selecione um veículo</option>';
+            veiculosOrdenados.forEach(v => { select.innerHTML += `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`; });
+            if(valorAtual && veiculosOrdenados.includes(valorAtual)) select.value = valorAtual;
+            else select.value = "";
+            if(!select._hasChangeListener){
+                select.addEventListener('change', function() { document.getElementById('panel-filter-input').value = ''; currentFilter = ''; atualizarPainelDireitoComFiltro(); });
+                select._hasChangeListener = true;
+            }
+            const filterInput = document.getElementById('panel-filter-input');
+            if (filterInput && !filterInput._filterListener) {
+                filterInput.addEventListener('input', (e) => { currentFilter = e.target.value.toLowerCase(); atualizarPainelDireitoComFiltro(); });
+                filterInput._filterListener = true;
+            }
+            atualizarPainelDireitoComFiltro();
+        }
+        
+        function atualizarPainelDireitoComFiltro() {
+            const select = document.getElementById('panel-veiculo-select');
+            const veiculoSelecionado = select ? select.value : '';
+            if(!veiculoSelecionado){
+                document.getElementById('panel-servicos-list').innerHTML = '<div class="empty-panel">Selecione um veículo</div>';
+                document.getElementById('panel-kits-list').innerHTML = '<div class="empty-panel">Selecione um veículo</div>';
+                return;
+            }
+            const servicosObj = database.servicos[veiculoSelecionado] || {};
+            let servicosNomes = ordenarStrings(Object.keys(servicosObj));
+            const kitsObj = (database.kits || {})[veiculoSelecionado] || {};
+            let kitsNomes = ordenarStrings(Object.keys(kitsObj));
+            if (currentFilter) { servicosNomes = servicosNomes.filter(n => n.toLowerCase().includes(currentFilter)); kitsNomes = kitsNomes.filter(n => n.toLowerCase().includes(currentFilter)); }
+            let servicosHtml = '';
+            if(servicosNomes.length === 0) servicosHtml = '<div class="empty-panel">Nenhum serviço cadastrado</div>';
+            else servicosNomes.forEach(nome => { const s = servicosObj[nome]; servicosHtml += `<div class="panel-item"><div class="panel-item-info" onclick="editarServicoConfig('${veiculoSelecionado}','${nome.replace(/'/g, "\\'")}')"><div class="panel-item-name">${escapeHtml(nome)}</div><div class="panel-item-details">TPR: ${s.tpr || '-'} | ${s.tempo}h | Peças: ${(s.pecas||[]).length}</div></div><div class="panel-item-actions"><button onclick="event.stopPropagation(); editarServicoConfig('${veiculoSelecionado}','${nome.replace(/'/g, "\\'")}')" title="Editar">✏️</button><button onclick="event.stopPropagation(); excluirServico('${veiculoSelecionado}','${nome.replace(/'/g, "\\'")}')" title="Excluir">🗑️</button></div></div>`; });
+            document.getElementById('panel-servicos-list').innerHTML = servicosHtml;
+            let kitsHtml = '';
+            if(kitsNomes.length === 0) kitsHtml = '<div class="empty-panel">Nenhum kit cadastrado</div>';
+            else kitsNomes.forEach(nome => { const kit = kitsObj[nome]; const isGlobal = kit.global === true; kitsHtml += `<div class="panel-item"><div class="panel-item-info" onclick="editarKit('${veiculoSelecionado}','${nome.replace(/'/g, "\\'")}')"><div class="panel-item-name">${escapeHtml(nome)} ${isGlobal ? '🌍' : ''}</div><div class="panel-item-details">${kit.length} serviço(s)</div></div><div class="panel-item-actions"><button class="btn-star ${isGlobal ? 'ativo' : ''}" onclick="event.stopPropagation(); toggleKitGlobal('${veiculoSelecionado}','${nome.replace(/'/g, "\\'")}')">★</button><button onclick="event.stopPropagation(); editarKit('${veiculoSelecionado}','${nome.replace(/'/g, "\\'")}')" title="Editar">✏️</button><button onclick="event.stopPropagation(); excluirKit('${veiculoSelecionado}','${nome.replace(/'/g, "\\'")}')" title="Excluir">🗑️</button></div></div>`; });
+            document.getElementById('panel-kits-list').innerHTML = kitsHtml;
+        }
+        
+        function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m){ if(m === '&') return '&amp;'; if(m === '<') return '&lt;'; if(m === '>') return '&gt;'; return m; }); }
+        
+        // Funções CRUD
+        function carregarListaVeiculosUI(){
+            const container=document.getElementById('lista-veiculos'); if(!container) return;
+            if(database.veiculos.length===0){ container.innerHTML='<div class="empty-state">Nenhum veículo cadastrado</div>'; return; }
+            container.innerHTML='';
+            ordenarStrings(database.veiculos).forEach(veic=>{ const div=document.createElement('div'); div.style.cssText='display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--border-light);'; div.innerHTML=`<span style="font-weight:500;">${escapeHtml(veic)}</span><div><button class="action-btn-small" onclick="editarVeiculo('${veic.replace(/'/g, "\\'")}')">✏️</button><button class="action-btn-small" style="background:var(--accent);" onclick="excluirVeiculo('${veic.replace(/'/g, "\\'")}')">🗑️</button></div>`; container.appendChild(div); });
+        }
+        window.editarVeiculo=(antigo)=>{ const novo=prompt('Novo nome:',antigo); if(novo && novo!==antigo){ const idx=database.veiculos.indexOf(antigo); if(idx!==-1){ database.veiculos[idx]=novo; database.servicos[novo]=database.servicos[antigo]; delete database.servicos[antigo]; if(database.kits[antigo]){ database.kits[novo]=database.kits[antigo]; delete database.kits[antigo]; } ordenarVeiculos(); salvarDados(); carregarListaVeiculosUI(); preencherSelectsVeiculos(); popularSelectVeiculosPainelDireito(); mostrarNotificacao('Veículo renomeado','success'); } } };
+        window.excluirVeiculo=(veic)=>{ if(confirm(`Excluir ${veic} e todos os serviços/kits?`)){ database.veiculos=database.veiculos.filter(v=>v!==veic); delete database.servicos[veic]; delete database.kits[veic]; ordenarVeiculos(); salvarDados(); carregarListaVeiculosUI(); preencherSelectsVeiculos(); popularSelectVeiculosPainelDireito(); mostrarNotificacao('Excluído','success'); } };
+        function atualizarTabelaConfig(veiculo){
+            const tbody=document.querySelector('#tabela-config tbody'); if(!tbody) return;
+            tbody.innerHTML=''; const servicos=database.servicos[veiculo]||{};
+            const nomesOrdenados = ordenarStrings(Object.keys(servicos));
+            if(nomesOrdenados.length===0){ document.getElementById('servicos-vazio').style.display='block'; document.getElementById('tabela-config-container').style.display='none'; return; }
+            document.getElementById('servicos-vazio').style.display='none'; document.getElementById('tabela-config-container').style.display='block';
+            nomesOrdenados.forEach(nome => { const s=servicos[nome]; const tr=document.createElement('tr'); tr.innerHTML=`<td><strong>${escapeHtml(nome)}</strong></td><td>${(s.pecas||[]).map(p=>escapeHtml(p)).join(', ')}</td><td>${s.tpr||'-'}</td><td>${s.tempo}h</td><td><button class="btn-star ${s.global?'ativo':''}" onclick="toggleServicoGlobal('${veiculo}','${nome.replace(/'/g, "\\'")}')">★</button><button class="action-btn-small" onclick="editarServicoConfig('${veiculo}','${nome.replace(/'/g, "\\'")}')">✏️</button><button class="action-btn-small" style="background:var(--accent);" onclick="excluirServico('${veiculo}','${nome.replace(/'/g, "\\'")}')">🗑️</button></td>`; tbody.appendChild(tr); });
+        }
+        window.adicionarVeiculo=()=>{ const nome=document.getElementById('novo-veiculo').value.trim(); if(!nome) return mostrarNotificacao('Digite um nome','error'); if(database.veiculos.includes(nome)) return mostrarNotificacao('Já existe','error'); database.veiculos.push(nome); if(!database.servicos[nome]) database.servicos[nome]={}; ordenarVeiculos(); salvarDados(); carregarListaVeiculosUI(); preencherSelectsVeiculos(); popularSelectVeiculosPainelDireito(); document.getElementById('novo-veiculo').value=''; mostrarNotificacao('Veículo adicionado','success'); };
+        window.adicionarPeca=()=>{ const container=document.getElementById('pecas-container'); const div=document.createElement('div'); div.className='peca-item'; div.innerHTML='<input type="text" class="peca-nome" placeholder="Nome da peça"><button type="button" class="btn-remove-peca" onclick="removerPeca(this)">🗑️</button>'; container.appendChild(div); };
+        window.removerPeca=(btn)=>{ if(document.querySelectorAll('.peca-item').length>1) btn.parentElement.remove(); else btn.parentElement.querySelector('input').value=''; };
+        function obterPecas(){ return [...document.querySelectorAll('.peca-nome')].map(i=>i.value.trim()).filter(n=>n); }
+        window.adicionarServicoConfig=()=>{ const veiculo=document.getElementById('veiculo-config').value, tpr=document.getElementById('tpr').value.trim(), tempo=parseFloat(document.getElementById('tempo').value), pecas=obterPecas(), desc=document.getElementById('descricao-servico').value.trim(); if(!veiculo) return mostrarNotificacao('Selecione veículo','error'); if(!tpr) return mostrarNotificacao('TPR obrigatório','error'); if(isNaN(tempo)||tempo<0) return mostrarNotificacao('Tempo inválido','error'); if(pecas.length===0) return mostrarNotificacao('Adicione peça','error'); let nomeServico=desc||pecas[0]; if(database.servicos[veiculo]?.[nomeServico] && !servicoEditando) return mostrarNotificacao('Serviço já existe','error'); if(servicoEditando){ delete database.servicos[veiculo][servicoEditando.nomeAntigo]; servicoEditando=null; } if(!database.servicos[veiculo]) database.servicos[veiculo]={}; database.servicos[veiculo][nomeServico]={ peca:nomeServico, tpr, tempo, pecas }; salvarDados(); atualizarTabelaConfig(veiculo); limparFormConfig(); mostrarNotificacao('Serviço salvo','success'); };
+        window.editarServicoConfig=(veiculo,nome)=>{ const s=database.servicos[veiculo]?.[nome]; if(s){ document.getElementById('veiculo-config').value=veiculo; document.getElementById('tpr').value=s.tpr; document.getElementById('tempo').value=s.tempo; document.getElementById('descricao-servico').value=(s.pecas?.length>1 && s.peca !== s.pecas[0]) ? s.peca : ''; const container=document.getElementById('pecas-container'); container.innerHTML=''; (s.pecas||[s.peca]).forEach(p=>{ const div=document.createElement('div'); div.className='peca-item'; div.innerHTML=`<input class="peca-nome" value="${escapeHtml(p)}"><button class="btn-remove-peca" onclick="removerPeca(this)">🗑️</button>`; container.appendChild(div); }); servicoEditando={nomeAntigo:nome, veiculo}; document.getElementById('btn-salvar-servico').innerHTML='💾 Atualizar'; abrirPagina('servico-cadastrar'); atualizarPreviewValorServico(); mostrarNotificacao('Carregado para edição','info'); } };
+        window.excluirServico=(veic,nome)=>{ if(confirm('Excluir serviço?')){ delete database.servicos[veic][nome]; salvarDados(); atualizarTabelaConfig(veic); mostrarNotificacao('Excluído','success'); } };
+        window.limparFormConfig=()=>{ document.getElementById('tpr').value=''; document.getElementById('tempo').value=''; document.getElementById('descricao-servico').value=''; const container=document.getElementById('pecas-container'); container.innerHTML='<div class="peca-item"><input class="peca-nome" placeholder="Nome da peça"><button class="btn-remove-peca" onclick="removerPeca(this)">🗑️</button></div>'; servicoEditando=null; document.getElementById('btn-salvar-servico').innerHTML='💾 Salvar Serviço'; atualizarPreviewValorServico(); };
+        window.toggleServicoGlobal=(veic,nome)=>{ const s=database.servicos[veic]?.[nome]; if(s){ s.global=!s.global; if(s.global) for(const v in database.servicos) if(v!==veic) database.servicos[v][nome]={...s}; else for(const v in database.servicos) if(v!==veic && database.servicos[v][nome]?.global) delete database.servicos[v][nome]; salvarDados(); atualizarTabelaConfig(veic); mostrarNotificacao(s.global?'⭐ Global ativo':'Global removido','info'); } };
+        function carregarListaKitsUI(veiculo){
+            const container=document.getElementById('lista-kits'); if(!container) return;
+            if(!veiculo){ container.innerHTML='<div class="empty-state">Selecione um veículo</div>'; return; }
+            const kitsVeic=(database.kits||{})[veiculo]||{};
+            const kitsNomes = ordenarStrings(Object.keys(kitsVeic));
+            if(kitsNomes.length===0){ container.innerHTML='<div class="empty-state">Nenhum kit</div>'; return; }
+            let html=''; kitsNomes.forEach(nome => { const kit = kitsVeic[nome]; const isGlobal = kit.global === true; html+=`<div style="border:1px solid var(--border);border-radius:16px;padding:12px;margin-bottom:12px;"><div style="display:flex;justify-content:space-between;"><strong>📦 ${escapeHtml(nome)} ${isGlobal ? '🌍' : ''}</strong><div><button class="btn-star ${isGlobal ? 'ativo' : ''}" onclick="toggleKitGlobal('${veiculo}','${nome.replace(/'/g, "\\'")}')">★</button><button class="action-btn-small" onclick="editarKit('${veiculo}','${nome.replace(/'/g, "\\'")}')">✏️</button><button class="action-btn-small" style="background:var(--accent);" onclick="excluirKit('${veiculo}','${nome.replace(/'/g, "\\'")}')">🗑️</button></div></div><div style="font-size:0.75rem;">Serviços: ${kit.map(s=>escapeHtml(s.nome)).join(', ')}</div></div>`; });
+            container.innerHTML=html;
+        }
+        window.adicionarServicoAoKit=()=>{ const nome=document.getElementById('busca-servico-kit').value.trim(), veic=document.getElementById('kit-veiculo').value; if(!veic) return mostrarNotificacao('Selecione veículo','error'); const servico=database.servicos[veic]?.[nome]; if(!servico) return mostrarNotificacao('Serviço não encontrado','error'); if(servicosSelecionadosKit.some(s=>s.nome===nome)) return mostrarNotificacao('Já adicionado','error'); servicosSelecionadosKit.push({nome,...servico}); atualizarListaSelecionados(); document.getElementById('busca-servico-kit').value=''; };
+        function atualizarListaSelecionados(){ const container=document.getElementById('selected-services-list'); if(servicosSelecionadosKit.length===0){ container.innerHTML='<div class="empty-state">Nenhum serviço</div>'; return; } container.innerHTML=servicosSelecionadosKit.map((s,i)=>`<div class="selected-service-item"><div><strong>${escapeHtml(s.nome)}</strong><div style="font-size:0.7rem;">TPR:${s.tpr} | ${s.tempo}h</div></div><button class="btn-remove-peca" onclick="removerServicoDaLista(${i})">Remover</button></div>`).join(''); }
+        window.removerServicoDaLista=(i)=>{ servicosSelecionadosKit.splice(i,1); atualizarListaSelecionados(); };
+        window.salvarKit=()=>{ const veic=document.getElementById('kit-veiculo').value, nomeKit=document.getElementById('kit-nome').value.trim(); if(!veic||!nomeKit||servicosSelecionadosKit.length===0) return mostrarNotificacao('Preencha todos e adicione serviços','error'); if(!database.kits) database.kits={}; if(!database.kits[veic]) database.kits[veic]={}; if(kitEditando && kitEditando.nomeAntigo!==nomeKit) delete database.kits[veic][kitEditando.nomeAntigo]; database.kits[veic][nomeKit] = [...servicosSelecionadosKit]; salvarDados(); carregarListaKitsUI(veic); limparFormKit(); mostrarNotificacao(`Kit "${nomeKit}" salvo`,'success'); };
+        window.editarKit=(veic,nome)=>{ const kit=(database.kits||{})[veic]?.[nome]; if(kit){ document.getElementById('kit-veiculo').value=veic; document.getElementById('kit-nome').value=nome; servicosSelecionadosKit = kit.map(s => ({...s})); atualizarListaSelecionados(); kitEditando={veic,nomeAntigo:nome}; abrirPagina('servico-kits'); mostrarNotificacao(`Editando kit "${nome}"`,'info'); } };
+        window.excluirKit=(veic,nome)=>{ if(confirm(`Excluir kit ${nome}?`)){ delete database.kits[veic][nome]; salvarDados(); carregarListaKitsUI(veic); mostrarNotificacao('Kit excluído','success'); } };
+        window.limparFormKit=()=>{ document.getElementById('kit-nome').value=''; servicosSelecionadosKit=[]; atualizarListaSelecionados(); kitEditando=null; };
+        window.salvarValorHoraDash=()=>{ const v=parseFloat(document.getElementById('valor-hora-dash').value); if(!isNaN(v) && v>=0){ database.valorHora=v; salvarDados(); mostrarNotificacao('Valor/hora atualizado','success'); } };
+        function mostrarNotificacao(msg,tipo){ const el=document.getElementById('notification'); el.textContent=msg; el.className=`notification ${tipo}`; el.style.display='block'; setTimeout(()=>el.style.display='none',2500); }
+        window.abrirPagina=(pagina)=>{ document.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); document.getElementById(pagina).classList.add('active'); document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active')); if(pagina!=='dashboard'){ const btn=document.querySelector(`.nav-item[data-page="${pagina}"]`); if(btn) btn.classList.add('active'); } fecharMobileSidebars(); if(pagina === 'servico-cadastrar') configurarPreviewServico(); };
+        function fecharMobileSidebars(){ if(window.innerWidth<=768){ document.getElementById('sidebarLeft').classList.remove('mobile-open-left'); document.getElementById('sidebarRight').classList.remove('mobile-open-right'); } }
+        window.toggleMobileSidebarLeft = () => document.getElementById('sidebarLeft').classList.toggle('mobile-open-left');
+        window.toggleMobileSidebarRight = () => document.getElementById('sidebarRight').classList.toggle('mobile-open-right');
+        
+        window.exportarDadosExcel = () => {
+            try {
+                const dadosVeiculos = database.veiculos.map(v => ({ Veículo: v }));
+                const servicosArray = [];
+                ordenarStrings(database.veiculos).forEach(veic => { const servicosObj = database.servicos[veic] || {}; ordenarStrings(Object.keys(servicosObj)).forEach(nomeServ => { const s = servicosObj[nomeServ]; servicosArray.push({ Veículo: veic, Serviço: nomeServ, TPR: s.tpr || '', TempoHoras: s.tempo, Peças: (s.pecas || []).join('; '), Global: s.global ? 'Sim' : 'Não' }); }); });
+                const kitsArray = [];
+                ordenarStrings(database.veiculos).forEach(veic => { const kitsObj = (database.kits || {})[veic] || {}; ordenarStrings(Object.keys(kitsObj)).forEach(kitNome => { kitsArray.push({ Veículo: veic, Kit: kitNome, Serviços: database.kits[veic][kitNome].map(s=>s.nome).join('; '), Global: database.kits[veic][kitNome].global ? 'Sim' : 'Não' }); }); });
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dadosVeiculos), "Veiculos");
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(servicosArray), "Servicos");
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(kitsArray), "Kits");
+                XLSX.writeFile(wb, `oficina_backup_${new Date().toISOString().slice(0,19)}.xlsx`);
+                mostrarNotificacao("Backup gerado com sucesso!", "success");
+            } catch(e){ mostrarNotificacao("Erro ao exportar: "+e.message, "error"); }
+        };
+        window.importarDadosExcel = (event) => {
+            const file = event.target.files[0];
+            if(!file) return;
+            if(!confirm("ATENÇÃO: Isso substituirá TODOS os dados atuais (veículos, serviços e kits) pelos dados do arquivo. Deseja continuar?")){ event.target.value = ''; return; }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                try {
+                    const veiculosSheet = workbook.Sheets["Veiculos"];
+                    const servicosSheet = workbook.Sheets["Servicos"];
+                    const kitsSheet = workbook.Sheets["Kits"];
+                    let novosVeiculos = [];
+                    if(veiculosSheet){ const jsonVeiculos = XLSX.utils.sheet_to_json(veiculosSheet); novosVeiculos = jsonVeiculos.map(row => row.Veículo).filter(v => v); }
+                    let novoServicos = {};
+                    if(servicosSheet){ const jsonServicos = XLSX.utils.sheet_to_json(servicosSheet); for(const row of jsonServicos){ const veic = row.Veículo; if(!veic) continue; if(!novoServicos[veic]) novoServicos[veic] = {}; const nomeServ = row.Serviço; if(!nomeServ) continue; novoServicos[veic][nomeServ] = { peca: nomeServ, tpr: row.TPR || '', tempo: parseFloat(row.TempoHoras) || 0, pecas: row.Peças ? row.Peças.split(';').map(p=>p.trim()) : [], global: row.Global === 'Sim' }; } }
+                    let novosKits = {};
+                    if(kitsSheet){ const jsonKits = XLSX.utils.sheet_to_json(kitsSheet); for(const row of jsonKits){ const veic = row.Veículo; if(!veic) continue; const kitNome = row.Kit; if(!kitNome) continue; if(!novosKits[veic]) novosKits[veic] = {}; const servicosNomes = row.Serviços ? row.Serviços.split(';').map(s=>s.trim()) : []; if(servicosNomes.length){ const servicosObj = servicosNomes.map(sNome => { const srv = novoServicos[veic]?.[sNome]; if(srv) return { nome: sNome, tpr: srv.tpr, tempo: srv.tempo, pecas: srv.pecas }; return { nome: sNome, tpr: '', tempo: 0, pecas: [] }; }); novosKits[veic][kitNome] = servicosObj; if (row.Global === 'Sim') novosKits[veic][kitNome].global = true; } } }
+                    if(novosVeiculos.length) database.veiculos = novosVeiculos; else database.veiculos = [];
+                    ordenarVeiculos();
+                    if(Object.keys(novoServicos).length) database.servicos = novoServicos; else database.servicos = {};
+                    if(Object.keys(novosKits).length) database.kits = novosKits; else database.kits = {};
+                    salvarDados();
+                    atualizarTodasTelas();
+                    mostrarNotificacao("Dados importados com sucesso!", "success");
+                } catch(err){ mostrarNotificacao("Erro ao processar arquivo: "+err.message, "error"); }
+                event.target.value = '';
+            };
+            reader.readAsArrayBuffer(file);
+        };
+
+        // ========== NOVA FUNÇÃO PARA CAPTURAR ENTER NO SELECT DE VEÍCULOS (PÁGINA DE SERVIÇOS) ==========
+        function configurarEnterNoSelectVeiculo() {
+            const selectVeiculo = document.getElementById('veiculo-config');
+            if (!selectVeiculo) return;
+            
+            // Evita adicionar múltiplos listeners
+            if (selectVeiculo._enterListener) return;
+            
+            // Listener para tecla Enter
+            selectVeiculo.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();  // Evita qualquer comportamento padrão (ex: submit de formulário)
+                    const veiculoSelecionado = this.value;
+                    if (veiculoSelecionado) {
+                        // Atualiza a tabela de serviços para o veículo escolhido
+                        atualizarTabelaConfig(veiculoSelecionado);
+                        // Move o foco para o campo TPR, agilizando o cadastro do próximo serviço
+                        const campoTPR = document.getElementById('tpr');
+                        if (campoTPR) {
+                            campoTPR.focus();
+                        }
+                        // Pequeno feedback visual (opcional)
+                        mostrarNotificacao(`Veículo "${veiculoSelecionado}" selecionado. Tabela atualizada.`, 'info');
+                    } else {
+                        mostrarNotificacao('Selecione um veículo antes de pressionar Enter.', 'warning');
+                    }
+                }
+            });
+            
+            // Listener para change (atualiza a tabela também ao clicar com mouse)
+            if (!selectVeiculo._changeListener) {
+                selectVeiculo.addEventListener('change', function() {
+                    const veiculoSelecionado = this.value;
+                    if (veiculoSelecionado) {
+                        atualizarTabelaConfig(veiculoSelecionado);
+                    }
+                });
+                selectVeiculo._changeListener = true;
+            }
+            
+            selectVeiculo._enterListener = true;
+        }
+        
+        // Chamar a configuração sempre que a interface for atualizada (garante que o listener esteja ativo)
+        // Para isso, podemos chamar dentro de atualizarTodasTelas, mas como o select já existe e não muda,
+        // basta chamar uma vez quando o DOM estiver pronto e após login.
+        // Vamos chamar também dentro de atualizarTodasTelas para garantir (mas com flag para não duplicar)
+        function iniciarEnterNoSelectVeiculo() {
+            configurarEnterNoSelectVeiculo();
+        }
+        
+        // Sobrescrever (ou estender) atualizarTodasTelas para incluir a configuração, sem perder as outras chamadas
+        const originalAtualizarTodasTelas = atualizarTodasTelas;
+        window.atualizarTodasTelas = function() {
+            originalAtualizarTodasTelas();
+            iniciarEnterNoSelectVeiculo();
+        };
+        
+        onAuthStateChanged(auth, async(user)=>{ 
+            if(user){ usuarioAtual=user; document.getElementById('user-status-sidebar').innerText=user.email; await carregarDadosUsuario(user.uid); document.getElementById('page-login').classList.remove('active'); abrirPagina('dashboard'); iniciarEnterNoSelectVeiculo(); } 
+            else { usuarioAtual=null; document.getElementById('user-status-sidebar').innerText='Não autenticado'; document.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); document.getElementById('page-login').classList.add('active'); } 
+        });
+        window.fazerLogin = async () => { const email=document.getElementById('login-email').value, pass=document.getElementById('login-password').value, err=document.getElementById('login-error'); try{ await signInWithEmailAndPassword(auth,email,pass); } catch(e){ err.innerText='E-mail ou senha incorretos'; } };
+        window.fazerLogout = () => signOut(auth);
+        window.toggleKitGlobal = toggleKitGlobal;
+        
+        document.getElementById('busca-servico-kit')?.addEventListener('input', function(){
+            const termo=this.value.toLowerCase().trim(), veic=document.getElementById('kit-veiculo').value, sugDiv=document.getElementById('sugestoes-servicos-kit');
+            if(!veic || termo.length<1){ sugDiv.style.display='none'; return; }
+            const servicosVeic=database.servicos[veic]||{};
+            const filtrados=Object.entries(servicosVeic).filter(([nome])=>nome.toLowerCase().includes(termo));
+            if(filtrados.length){
+                sugDiv.innerHTML=''; filtrados.sort((a,b)=>a[0].localeCompare(b[0], 'pt'));
+                filtrados.forEach(([nome,serv])=>{ const div=document.createElement('div'); div.className='sugestao-item'; div.style.padding='10px'; div.style.cursor='pointer'; div.innerHTML=`<strong>${escapeHtml(nome)}</strong><div style="font-size:0.7rem;">TPR:${serv.tpr} | ${serv.tempo}h</div>`; div.onclick=()=>{ document.getElementById('busca-servico-kit').value=nome; sugDiv.style.display='none'; adicionarServicoAoKit(); }; sugDiv.appendChild(div); });
+                sugDiv.style.display='block';
+            } else sugDiv.style.display='none';
+        });
+        document.addEventListener('click',(e)=>{ const sug=document.getElementById('sugestoes-servicos-kit'); if(sug && !e.target.closest('#busca-servico-kit') && !sug.contains(e.target)) sug.style.display='none'; });
+        
+        // Inicialização garantida após carregamento do DOM
+        document.addEventListener('DOMContentLoaded', () => {
+            iniciarEnterNoSelectVeiculo();
+        });
+    </script>
+</body>
+</html>
